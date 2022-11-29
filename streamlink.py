@@ -18,7 +18,6 @@ import emoji
 
 from _types import ChannelPointsEventMessage, Limits
 from models import CleanupMixin
-from razer import RazerChromaConnector, parse_colour
 from twitch import TwitchConnector, TwitchOauth
 
 
@@ -87,6 +86,7 @@ def tts_text_replacement(text: str) -> str:
     Replace some common words with things the TTS can actually say.
     """
 
+    # Remove the reply function
     if text.startswith("@"):
         text = text.split(" ", 1)[1]
 
@@ -141,31 +141,6 @@ def get_pitch_shift(username: str) -> float:
 
     r = random.Random(username + "a")
     return r.choice(list(range(-10, 10, 2))) / 10
-
-
-async def handle_colour_redemption(message: ChannelPointsEventMessage) -> bool:
-    """
-    Handle a user on Twitch redeeming a colour change reward.
-    """
-
-    global razer
-
-    # See if the colour is valid
-    user_input = message['data']['redemption']['user_input']
-    colour = [parse_colour(user_input)]
-    if len(user_input.split(" ")) == 2 and None in colour:
-        colour = [parse_colour(i) for i in user_input.split(" ")]
-        colour = [colour[0], colour[1], colour[0], colour[1]]
-    elif len(user_input.split(" ")) == 4 and None in colour:
-        colour = [parse_colour(i) for i in user_input.split(" ")]
-        colour = [colour[0], colour[3], colour[1], colour[2]]
-    if None in colour:
-        return False
-
-    # Change headphone colour
-    log.info(f"Headphone colour change - {user_input}")
-    await razer.set_colour(*colour)  # type: ignore
-    return True
 
 
 async def handle_run_tts(
@@ -353,12 +328,6 @@ async def main(args: argparse.Namespace):
     # Create the rewards
     await oauth.create_reward(access_token, channel_id)
 
-    # Create Razer connector
-    if not args.no_razer:
-        razer = RazerChromaConnector()
-        await razer.run()
-        TO_CLEANUP.append(razer)
-
     # Create Twitch connector
     twitch = TwitchConnector(access_token, channel_id, channel_name)
     await twitch.run()
@@ -407,19 +376,7 @@ async def main(args: argparse.Namespace):
 
         # Make sure it's a redemption I want
         reward_title = message['data']['redemption']['reward']['title']
-        if reward_title == "Change headphones colour":
-            status = await handle_colour_redemption(message)
-        elif reward_title == "Run TTS":
-            status = await handle_run_tts(message, {
-                "max_word_count": 50,
-                "max_word_length": 16,
-            })
-        elif reward_title == "Run LONG TTS":
-            status = await handle_run_tts(message, {
-                "max_word_count": 100,
-                "max_word_length": 20,
-            })
-        elif reward_title.startswith("Play sound: "):
+        if reward_title.startswith("Play sound: "):
             here = pathlib.Path(__file__).parent.resolve()
             try:
                 filename = "sounds/" + reward_title[len("Play sound: "):] + ".wav"
@@ -427,7 +384,6 @@ async def main(args: argparse.Namespace):
                     "vlc",
                     "-I",
                     "dummy",
-                    "--volume=1",
                     "--dummy-quiet",
                     str(here / filename),
                     "vlc://quit",
@@ -436,23 +392,6 @@ async def main(args: argparse.Namespace):
                 status = True
             except Exception as e:
                 log.error("Error playing sound file", exc_info=e)
-                status = False
-        elif reward_title.startswith("Large receipt print"):
-            user_input = message['data']['redemption']['user_input']
-            if len(user_input) <= 100:
-                try:
-                    future = asyncio.create_subprocess_exec(
-                        "python",
-                        "printer.py",
-                        "--big",
-                        *user_input.split(" "),
-                    )
-                    asyncio.get_running_loop().create_task(future)
-                    status = True
-                except Exception as e:
-                    log.error("Error printing receipt", exc_info=e)
-                    status = False
-            else:
                 status = False
 
         # See if we should mark it as redeemed
@@ -494,7 +433,6 @@ def main_nowait(args: argparse.Namespace):
 
 def setup_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--no-razer", action="store_true", default=False)
     parser.add_argument("--loglevel", nargs="?", default="INFO")
     return parser
 
@@ -502,7 +440,6 @@ def setup_args():
 TO_CLEANUP: List[CleanupMixin] = []  #: A list of things to clean up on stopping the script.
 oauth: TwitchOauth  #: The oauth connection object.
 twitch: TwitchConnector  #: The Twitch connection object.
-razer: RazerChromaConnector  #: The Razer Chroma connection object.
 
 
 if __name__ == "__main__":
