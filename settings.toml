@@ -1,3 +1,8 @@
+# Set the names out output devices here
+# If a device is not found, the default is used instead
+"Chat Output" = "Chat (2- BEACN Mix Create)"
+"Sound Output" = "Aux 1 / Hardware (2- BEACN Mix Create)"
+
 # Whether or not to ignore the reply mention at the start of messages
 "Ignore Replies" = true
 
@@ -26,18 +31,22 @@
     marshshshshshshsh = "kimberly"
     vineyboi6 = "russell"
     shallottheprince = "brian"
-    mellow = "kimberly"
     boo_wh0 = "russell"
     thedevpanda = "geraint"
+    cally_muffin_be_puffin123 = "kimberly"
 
 # A list of users who have pre-set voice pitches, and will not be rolled a
 # random one
 ["Pitch Overrides"]
+    angelicaugust = 12
+    ccactus371 = -12
+    cally_muffin_be_puffin123 = -3
 
 # Just straight up regex replacements
 ["Regex Replacements"]
     "^\\?+$" = "huh?"
     "^\\.\\.\\.$" = "umm"
+    "^LL$" = "Skill issue."
 
 # A list of common find/replace word replacements
 # These are done by regex sub at word boundaries
@@ -66,7 +75,8 @@
     "imho" = "in my honest opinion"
     "ty" = "thank you"
     "wdym" = "what do you mean"
-    "lol" = "lol"
+    "lol" = "teehee"
+    "lmao" = "teehee"
     "tho" = "though"
     "welp" = "whelp"
     "wth" = "what the hell"
@@ -85,3 +95,11 @@
     "=3" = "oo woo"
     "=D" = "yay!"
     "<3" = "heart"
+    "fr" = "for real"
+    "ikr" = "I know, right?"
+    "yw" = "you're welcome"
+    "dont" = "don't"
+    "rn" = "right now"
+    "ig" = "I guess"
+    "alr" = "alright"
+    "nvm" = "nevermind"

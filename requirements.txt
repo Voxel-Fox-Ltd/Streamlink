@@ -3,3 +3,4 @@ websockets
 python-dotenv
 novus[vbu]
 emoji
+python-vlc  # to actually play audio

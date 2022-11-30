@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import os
-from typing import List, Optional
+from typing import Dict, List
 import logging
 import sys
 import argparse
@@ -10,14 +10,21 @@ import pathlib
 from urllib.parse import urlencode
 import random
 import re
+import textwrap
 
 from aiohttp import web
 import dotenv
 import emoji
 import toml
+import vlc
 
 from _types import Limits, ChannelPointsRewardCreatePayload, Settings
 from twitch import TwitchConnector, TwitchOauth
+
+
+parser = argparse.ArgumentParser()
+parser.add_argument("--loglevel", nargs="?", default="INFO")
+parser.add_argument("--validate-token", action="store_true", default=False)
 
 
 dotenv.load_dotenv()
@@ -25,6 +32,7 @@ log = logging.getLogger("streamlink")
 ENV_FILE_PATH = pathlib.Path(__file__).parent.resolve() / ".env"
 SETTINGS_FILE_PATH = pathlib.Path(__file__).parent.resolve() / "settings.toml"
 TTS_PROCESS_QUEUE: List[asyncio.Task] = []
+AUDIO_OUTPUT_DEVICES: Dict[str, bytes] = {}
 
 
 def create_play_sound(title: str, **kwargs) -> ChannelPointsRewardCreatePayload:
@@ -53,8 +61,6 @@ REWARDS: List[ChannelPointsRewardCreatePayload] = [
     create_play_sound("oh my god"),
     create_play_sound("a bean"),
     create_play_sound("I can't believe you've done this"),
-    # create_play_sound("blast"),
-    # create_play_sound("AUGHHHHHHHHH"),
     create_play_sound("clown"),
     create_play_sound("boo"),
     create_play_sound("hello there"),
@@ -77,6 +83,46 @@ ALL_VOICES = {
     "kimberly": ("Kimberly", "1.2"),
     "salli": ("Salli", "1.1"),
 }
+
+
+def get_audio_devices() -> Dict[str, bytes]:
+    """
+    Get all of the registered audio devices in the system.
+    """
+
+    # Make a VLC instance
+    vlc_instance: vlc.Instance = vlc.Instance()
+    player: vlc.MediaPlayer = vlc_instance.media_player_new()
+
+    # List the devices that are registed
+    devices: Dict[str, bytes] = {}
+    mods = player.audio_output_device_enum()
+    if mods:
+        index = 0
+        mod = mods
+        while mod:
+            mod = mod.contents
+            desc = mod.description.decode('utf-8', 'ignore')
+            # print(f'index = {index}, desc = {desc}')
+            devices[desc] = mod.device
+            mod = mod.next
+            index += 1
+
+    # Free devices
+    # I don't know what this does, but it's there
+    vlc.libvlc_audio_output_device_list_release(mods)
+
+    # And done
+    return devices
+
+def get_chat_output_id() -> bytes:
+    data = get_settings()
+    return AUDIO_OUTPUT_DEVICES.get(data['Chat Output'], b'')
+
+
+def get_sound_output_id() -> bytes:
+    data = get_settings()
+    return AUDIO_OUTPUT_DEVICES.get(data['Sound Output'], b'')
 
 
 def get_settings() -> Settings:
@@ -124,7 +170,13 @@ def tts_text_replacement(text: str) -> str:
 
     # Do our other regex sub
     for i, o in settings['Regex Replacements'].items():
-        text = re.sub(i, o, text)
+        text = re.sub(
+            i,
+            o,
+            text,
+            count=0,
+            flags=re.IGNORECASE | re.MULTILINE,
+        )
 
     # Remove the emojis
     if settings['Ignore Emojis']:
@@ -195,33 +247,50 @@ async def handle_run_tts(
         "voice": voice[0],
         "text": message,
     })
-    process = await asyncio.create_subprocess_exec(
-        "vlc",
-        "-I",
-        "dummy",
-        "--dummy-quiet",
+
+    # process = await asyncio.create_subprocess_exec(
+    #     "vlc",
+    #     "-I",
+    #     "dummy",
+    #     "--dummy-quiet",
+        # "--rate",
+        # voice[1],
+        # "--audio-filter",
+        # "scaletempo_pitch",
+    #     "--pitch-shift",
+    #     str(pitch_shift),
+    #     url,
+    #     "vlc://quit",
+    # )
+
+    vlc_instance: vlc.Instance = vlc.Instance(
         "--rate",
         voice[1],
         "--audio-filter",
         "scaletempo_pitch",
-        "--pitch-shift",
-        str(pitch_shift),
-        url,
-        "vlc://quit",
     )
+    vlc_player: vlc.MediaPlayer = vlc_instance.media_player_new()
+    vlc_media: vlc.Media = vlc_instance.media_new(url)
+    vlc_player.set_media(vlc_media)
+    vlc_player.audio_output_device_set(None, get_chat_output_id())
+    vlc_player.play()
+
     log.info("Running TTS with voice {0} - {1}".format(
         voice[0],
         message
     ))
+    log.debug(url)
     try:
-        await process.wait()
         await asyncio.sleep(1)
+        while vlc_player.is_playing():
+            await asyncio.sleep(1)
     except asyncio.CancelledError:
         log.info("Cancelling TTS with voice {0} - {1}".format(
             voice[0],
             message
         ))
-        process.kill()
+    finally:
+        vlc_player.stop()
     return True
 
 
@@ -231,9 +300,31 @@ def get_twitch_auth_redirect(queue: asyncio.Queue):
     """
 
     async def wrapper(request: web.Request):
-        code = request.query.get("code")
-        queue.put_nowait(code)
-        return web.Response(body="You may now close this window.")
+        if request.method == "GET":
+            return web.Response(
+                body=textwrap.dedent("""
+                    <!DOCTYPE html>
+                    <html>
+                    <style>
+                    body {
+                        font-family: 'Century Gothic', 'Helvetica', sans-serif;
+                    }
+                    </style>
+                    <script>
+                        fetch(
+                            `/${location.hash.replace('#', '?')}`,
+                            {method: 'POST'},
+                        ).then(() => window.close())
+                    </script>
+                    <h1>You may now close this window <3</h1>
+                    </html>
+                """),
+                content_type="text/html",
+            )
+        # code = request.query.get("code")
+        queue.put_nowait(request.query['access_token'])
+        # queue.put_nowait(code)
+        return web.Response(body="")
     return wrapper
 
 
@@ -304,20 +395,18 @@ async def twitch_points_loop(twitch: TwitchConnector, oauth: TwitchOauth):
         if reward_title.startswith("Play sound: "):
 
             # Get the path to the file we want to play
-            here = pathlib.Path(__file__).parent.resolve()
+            here = pathlib.Path(__file__).parent
 
             # Try and play it via VLC
             try:
-                filename = "sounds/" + reward_title[len("Play sound: "):] + ".wav"
-                future = asyncio.create_subprocess_exec(
-                    "vlc",
-                    "-I",
-                    "dummy",
-                    "--dummy-quiet",
-                    str(here / filename),
-                    "vlc://quit",
-                )
-                asyncio.create_task(future)
+                partial = "sounds/" + reward_title[len("Play sound: "):] + ".wav"
+                filename = (here / partial).resolve()
+                vlc_instance: vlc.Instance = vlc.Instance()
+                vlc_player: vlc.MediaPlayer = vlc_instance.media_player_new()
+                vlc_media: vlc.Media = vlc_instance.media_new(filename)
+                vlc_player.set_media(vlc_media)
+                vlc_player.audio_output_device_set(None, get_sound_output_id())
+                vlc_player.play()
                 status = True
             except Exception as e:
                 log.error("Error playing sound file", exc_info=e)
@@ -336,37 +425,21 @@ async def twitch_points_loop(twitch: TwitchConnector, oauth: TwitchOauth):
             )
 
 
-async def main():
+async def get_access_token(oauth: TwitchOauth) -> str:
     """
-    An async version of our main loop so we can await things.
+    Get a valid access token from the user.
     """
 
-    # See if we have a stored access token
-    oauth = TwitchOauth(
-        os.getenv("CLIENT_ID", ""),
-        os.getenv("CLIENT_SECRET", ""),
-    )
-    refresh_token = os.getenv("TWITCH_REFRESH_TOKEN", None)
+    # See if we have one stored
+    access_token = os.getenv("TWITCH_ACCESS_TOKEN", None)
 
-    # We have an access token
-    if refresh_token:
-        log.info("Skipping webserver as we have a refresh token already.")
-        try:
-            access_token, refresh_token = await (
-                oauth
-                .get_access_token_from_refresh(refresh_token)
-            )
-        except:
-            access_token = None
-
-    # We don't have an access token
-    else:
-
-        # Start a webserver so we don't need to ask for an auth code
+    # Nothing stored - spin up a webserver
+    if not access_token:
         code_queue = asyncio.Queue[str]()
         web_app = web.Application(debug=True)
         web_app.add_routes([
-            web.get("/", get_twitch_auth_redirect(code_queue))
+            web.post("/", get_twitch_auth_redirect(code_queue)),
+            web.get("/", get_twitch_auth_redirect(code_queue)),
         ])
         runner = web.AppRunner(web_app)
         await runner.setup()
@@ -375,26 +448,74 @@ async def main():
 
         # Ask for the auth code
         oauth.open_auth_page()
-        auth_code = await code_queue.get()
+        access_token = await code_queue.get()
         await runner.cleanup()
 
-        # Get an access token and channel ID
-        access_token, refresh_token = await (
-            oauth
-            .get_access_token_from_code(auth_code)
-        )
+    # We should have something - check it's valid
+    else:
+        log.info("Skipping webserver as we have an access token already.")
 
-    # Store new refresh token
+        # See if we even want to try validating it
+        if parser.parse_args().validate_token:
+            log.info("Validating access token...")
+            if not await oauth.validate_token(access_token):
+
+                # Token's not valid
+                log.info("Stored token is not valid.")
+                remove_access_token_from_env()
+                return await get_access_token(oauth)  # Loop
+
+    # We got em
+    return access_token
+
+
+def write_access_token_to_env(access_token: str) -> None:
+    """
+    Write the access token provided to the environment file.
+    """
+
+    log.info("Writing access token to .env")
     with open(ENV_FILE_PATH) as a:
         data = a.read()
     new_data = [
         i
         for i in data.strip().split("\n")
-        if not i.startswith("TWITCH_REFRESH_TOKEN")
+        if not i.startswith("TWITCH_ACCESS_TOKEN")
     ]
     with open(ENV_FILE_PATH, "w") as a:
         a.write("\n".join(new_data) + "\n")
-        a.write(f"TWITCH_REFRESH_TOKEN={refresh_token}\n")
+        a.write(f"TWITCH_ACCESS_TOKEN={access_token}\n")
+
+
+def remove_access_token_from_env() -> None:
+    """
+    Remove the access token from the environment file.
+    """
+
+    log.info("Removing refresh token from .env")
+    with open(ENV_FILE_PATH) as a:
+        data = a.read()
+    new_data = [
+        i
+        for i in data.strip().split("\n")
+        if not i.startswith("TWITCH_ACCESS_TOKEN")
+    ]
+    with open(ENV_FILE_PATH, "w") as a:
+        a.write("\n".join(new_data) + "\n")
+    os.environ["TWITCH_ACCESS_TOKEN"] = ""
+
+
+async def main():
+    """
+    An async version of our main loop so we can await things.
+    """
+
+    # Set up our auth
+    oauth = TwitchOauth(
+        os.getenv("CLIENT_ID", "y4m5g5monzwb2kaxeak1bgh71erpgf"),
+    )
+    access_token = await get_access_token(oauth)
+    write_access_token_to_env(access_token)
     assert access_token, "Missing access token"
 
     # Get channel ID
@@ -405,16 +526,7 @@ async def main():
         )
     except Exception as e:
         log.error("Failed to get channel ID", exc_info=True)
-        with open(ENV_FILE_PATH) as a:
-            data = a.read()
-        new_data = [
-            i
-            for i in data.strip().split("\n")
-            if not i.startswith("TWITCH_REFRESH_TOKEN")
-        ]
-        log.info("Removing refresh token from .env")
-        with open(ENV_FILE_PATH, "w") as a:
-            a.write("\n".join(new_data) + "\n")
+        remove_access_token_from_env()
         input("Press enter to exit... ")
         return
 
@@ -441,7 +553,8 @@ async def main():
                     log.error("Message loop task failed", exc_info=err)
                     log.info("Restarting message loop in 10 seconds...")
                     await asyncio.sleep(10)
-                    message_loop_task = asyncio.create_task(twitch_message_loop(twitch))
+                    coro = twitch_message_loop(twitch)
+                    message_loop_task = asyncio.create_task(coro)
                     await asyncio.sleep(0.1)
                     if message_loop_task.done():
                         pass
@@ -475,21 +588,18 @@ async def main():
             break
 
 
-def setup_args():
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--loglevel", nargs="?", default="INFO")
-    return parser
-
-
 if __name__ == "__main__":
     # Parse args
-    args = setup_args().parse_args()
+    args = parser.parse_args()
 
     # Set up loggin
     logging.basicConfig(
         stream=sys.stdout,
         level=getattr(logging, args.loglevel.upper()),
     )
+
+    # Get our audio devices
+    AUDIO_OUTPUT_DEVICES = get_audio_devices()
 
     # Run our main
     try:

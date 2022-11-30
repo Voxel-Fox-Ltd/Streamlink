@@ -14,6 +14,8 @@ _SettingsTTSLimit = TypedDict(
 Settings = TypedDict(
     "Settings",
     {
+        "Chat Output": str,
+        "Sound Output": str,
         "Ignore Replies": bool,
         "Ignore Emojis": bool,
         "TTS Blacklist": List[str],

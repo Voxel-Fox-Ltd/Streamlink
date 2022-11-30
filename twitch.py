@@ -68,7 +68,10 @@ class TwitchOauth:
     A client to handle Twitch API requests.
     """
 
-    def __init__(self, client_id: str, client_secret: str):
+    def __init__(
+            self,
+            client_id: str,
+            client_secret: Optional[str] = None):
         self.client_id = client_id
         self.client_secret = client_secret
 
@@ -80,7 +83,7 @@ class TwitchOauth:
         url = "https://id.twitch.tv/oauth2/authorize?" + urlencode({
             "client_id": self.client_id,
             "redirect_uri": "http://localhost:8558",
-            "response_type": "code",
+            "response_type": "token",
             "scope": " ".join([
                 "channel:read:redemptions",
                 "channel:manage:redemptions",
@@ -89,6 +92,19 @@ class TwitchOauth:
             ]),
         })
         webbrowser.open_new(url)
+
+    async def validate_token(self, access_token: str) -> bool:
+        """
+        Checks whether a given access token is still valid.
+        """
+
+        headers = {
+            "Authorization": f"Bearer {access_token}",
+        }
+        async with aiohttp.ClientSession() as session:
+            url = "https://id.twitch.tv/oauth2/validate"
+            site = await session.post(url, headers=headers)
+        return site.ok
 
     async def get_access_token_from_code(self, code: str) -> Tuple[str, str]:
         """
