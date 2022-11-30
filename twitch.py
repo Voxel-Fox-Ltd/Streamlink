@@ -5,11 +5,12 @@ from typing import TYPE_CHECKING, List, Optional, Tuple
 import asyncio
 import logging
 import re
+import dataclasses
 
 import aiohttp
 import websockets
+from typing_extensions import Self
 
-from models import CleanupMixin
 from _types import (
     ChannelPointsEventMessage,
     ChannelPointsRewardCreatePayload,
@@ -25,69 +26,41 @@ log = logging.getLogger("streamlink.twitch")
 
 TEXT_MESSAGE_REGEX = re.compile(
     (
-        r":(?P<username>.+?)!.+?@.+?\.tmi\.twitch\.tv PRIVMSG "
-        r"#(?P<channel>.+?) :(?P<message>.+)"
+        r"(?:@(?P<tags>.+?) )?:(?P<username>.+?)!.+?@.+?\.tmi\.twitch\.tv "
+        r"PRIVMSG #(?P<channel>.+?) :(?P<message>.+)"
     )
 )
 
 
-def create_play_sound(title: str, **kwargs) -> ChannelPointsRewardCreatePayload:
-    return {
-        "title": f"Play sound: {title}",
-        "cost": kwargs.get("cost", 50),
-        "background_color": kwargs.get("background_color", "#B00B69"),
-        "is_user_input_required": False,
-    }
+@dataclasses.dataclass
+class TwitchChatter:
+    username: str
+    colour: Optional[str] = None
+    moderator: bool = False
+    subscriber: bool = False
+    vip: bool = False
 
+    @classmethod
+    def parse(cls, username: str, line: str) -> Self:
+        """
+        Parse a line from Twitch.
+        """
 
-REWARDS: List[ChannelPointsRewardCreatePayload] = [
-    {
-        "title": "Change headphones colour",
-        "cost": 50,
-        "prompt": "What colour should they be changed to?",
-        "is_user_input_required": True,
-        "background_color": "#5DADEC",
-    },
-    {
-        "title": "Run TTS",
-        "cost": 50,
-        "prompt": "What do you want to say?",
-        "is_user_input_required": True,
-        "background_color": "#69B00B",
-    },
-    {
-        "title": "Receipt print",
-        "cost": 10,
-        "prompt": "What do you want to print?",
-        "is_user_input_required": True,
-        "background_color": "#69BEEF",
-    },
-    {
-        "title": "Large receipt print",
-        "cost": 100,
-        "prompt": "What do you want to print?",
-        "is_user_input_required": True,
-        "background_color": "#69BEEF",
-    },
-    create_play_sound("laughtrack"),
-    create_play_sound("shotgun"),
-    create_play_sound("jab"),
-    create_play_sound("police siren"),
-    create_play_sound("vine boom"),
-    create_play_sound("Roblox death"),
-    create_play_sound("rimshot"),
-    create_play_sound("uwu"),
-    create_play_sound("bruh"),
-    create_play_sound("aughhhhh"),
-    create_play_sound("Spongebob disappointed"),
-    create_play_sound("oh my god"),
-    create_play_sound("a bean"),
-    create_play_sound("I can't believe you've done this"),
-    create_play_sound("blast"),
-    create_play_sound("AUGHHHHHHHHH"),
-    create_play_sound("clown"),
-    create_play_sound("boo"),
-]
+        keys = {
+            i.split("=")[0]: i.split("=")[1]
+            for i in line.split(";")
+        }
+        colour = keys.get("color") or None
+        moderator = keys.get("mod", "0") == "1"
+        subscriber = keys.get("subscriber", "0") == "1"
+        vip = keys.get("vip", "0") == "1"
+        return cls(
+            username=username,
+            colour=colour,
+            moderator=moderator,
+            subscriber=subscriber,
+            vip=vip,
+        )
 
 
 class TwitchOauth:
@@ -170,11 +143,18 @@ class TwitchOauth:
         try:
             d = (await site.json())['data'][0]
         except Exception as e:
-            log.error("Failed to get user ID (%s)" % (await site.json()), exc_info=e)
+            log.error(
+                "Failed to get user ID (%s)" % (await site.json()),
+                exc_info=e,
+            )
             raise
         return d['id'], d['login']
 
-    async def create_reward(self, access_token: str, channel_id: str) -> bool:
+    async def create_rewards(
+            self,
+            access_token: str,
+            channel_id: str,
+            rewards: List[ChannelPointsRewardCreatePayload]) -> bool:
         """
         Create the "change headphone colour" reward.
         """
@@ -188,7 +168,7 @@ class TwitchOauth:
         }
         responses: List[bool] = []
         async with aiohttp.ClientSession() as session:
-            for r in REWARDS:
+            for r in rewards:
                 site = await session.post(
                     "https://api.twitch.tv/helix/channel_points/custom_rewards",
                     params=params, json=r, headers=headers,
@@ -236,7 +216,7 @@ class TwitchOauth:
             )
 
 
-class TwitchConnector(CleanupMixin):
+class TwitchConnector:
     """
     An object to handle the Twitch pubsub websocket.
     """
@@ -254,7 +234,7 @@ class TwitchConnector(CleanupMixin):
         self.chat_socket: Optional[WebSocketClientProtocol] = None
 
         self.message_queue = asyncio.Queue[ChannelPointsEventMessage]()
-        self.chat_queue = asyncio.Queue[Tuple[str, str]]()
+        self.chat_queue = asyncio.Queue[Tuple[TwitchChatter, str]]()
 
     async def handle_message_receive(self):
         """
@@ -312,19 +292,19 @@ class TwitchConnector(CleanupMixin):
 
         # Start tasks for pubsub
         log.info("Starting pubsub heartbeat")
-        self.heartbeat_task = asyncio.get_event_loop().create_task(self.send_ping())
+        self.heartbeat_task = asyncio.create_task(self.send_ping())
         log.info("Sending pubsub listen payload")
         await self.send_channel_listen()
         log.info("Starting pubsub message receive task")
-        self.message_task = asyncio.get_event_loop().create_task(self.handle_message_receive())
+        self.message_task = asyncio.create_task(self.handle_message_receive())
 
         # Start tasks for IRC
         log.info("Sending IRC pass and nick data")
         await self.chat_socket.send(f"PASS oauth:{self.access_token}")
         await self.chat_socket.send(f"NICK {self.channel_name}")
-        self.irc_message_task = asyncio.get_event_loop().create_task(self.handle_irc_message_receive())
+        self.irc_message_task = asyncio.create_task(self.handle_irc_message_receive())
 
-    def cleanup(self):
+    async def cleanup(self):
         """
         Cancel the running tasks and close the websocket connection.
         """
@@ -334,8 +314,8 @@ class TwitchConnector(CleanupMixin):
         self.message_task.cancel()  # type: ignore
         self.irc_message_task.cancel()  # type: ignore
         log.info("Closing websocket")
-        asyncio.get_event_loop().run_until_complete(self.socket.close())  # type: ignore
-        asyncio.get_event_loop().run_until_complete(self.chat_socket.close())  # type: ignore
+        await self.socket.close()  # type: ignore
+        await self.chat_socket.close()  # type: ignore
 
     async def send_ping(self):
         """
@@ -385,10 +365,11 @@ class TwitchConnector(CleanupMixin):
                     waiting_for_ok = False
                     break
 
-        # Join the chatroom
+        # Join the chatroom and request tags
         log.info(f"Joining channel {self.channel_name}")
         assert self.chat_socket
         await self.chat_socket.send(f"JOIN #{self.channel_name}")
+        await self.chat_socket.send(f"CAP REQ :twitch.tv/tags")
 
         # And now handle pings
         while True:
@@ -399,7 +380,6 @@ class TwitchConnector(CleanupMixin):
             except Exception as e:
                 log.error(f"Hit error reading socket - {e}")
                 continue
-            assert self.chat_socket
 
             # Split by line
             for line in data_raw.split("\r\n"):
@@ -416,12 +396,23 @@ class TwitchConnector(CleanupMixin):
                 # Text message
                 elif (match := TEXT_MESSAGE_REGEX.match(line)):
                     log.debug("Adding text to chat queue: %s" % match.group("message"))
-                    self.chat_queue.put_nowait(
-                        (
-                            match.group("username"),
-                            match.group("message"),
-                        ),
-                    )
+                    if match.group("tags"):
+                        self.chat_queue.put_nowait(
+                            (
+                                TwitchChatter.parse(
+                                    match.group("username"),
+                                    match.group("tags"),
+                                ),
+                                match.group("message"),
+                            ),
+                        )
+                    else:
+                        self.chat_queue.put_nowait(
+                            (
+                                TwitchChatter(match.group("username")),
+                                match.group("message"),
+                            ),
+                        )
 
                 # Elsey
                 else:

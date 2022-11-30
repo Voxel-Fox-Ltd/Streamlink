@@ -1,0 +1,87 @@
+# Whether or not to ignore the reply mention at the start of messages
+"Ignore Replies" = true
+
+# Whether or not to filter out emojis
+"Ignore Emojis" = true
+
+# A list of users who are ignored for the TTS
+"TTS Blacklist" = [
+    "streamlabs",
+]
+
+# Set up limits for the amount of words/characters that will get put through
+# into the TTS system
+["Limits"]
+    "Max Word Count" = 50
+    "Max Word Length" = 16
+
+# A list of users who have pre-set voices, and will not be rolled a
+# random one
+["Voice Overrides"]
+    mercybot77 = "matthew"
+    maxlovetoby = "russell"
+    glooomygoose = "justin"
+    deejaym2k = "brian"
+    kepic2 = "salli"
+    marshshshshshshsh = "kimberly"
+    vineyboi6 = "russell"
+    shallottheprince = "brian"
+    mellow = "kimberly"
+    boo_wh0 = "russell"
+    thedevpanda = "geraint"
+
+# A list of users who have pre-set voice pitches, and will not be rolled a
+# random one
+["Pitch Overrides"]
+
+# Just straight up regex replacements
+["Regex Replacements"]
+    "^\\?+$" = "huh?"
+    "^\\.\\.\\.$" = "umm"
+
+# A list of common find/replace word replacements
+# These are done by regex sub at word boundaries
+["Word Replacements"]
+    "cmon" = "come on"
+    "epicer" = "epic er"
+    "kae" = "Kay"
+    "yk" = "you know"
+    "omg" = "oh my god"
+    "btw" = "by the way"
+    ">=(" = "angry face"
+    "=(" = "sad face"
+    "b)" = "cool face"
+    "ppl" = "people"
+    "ic" = "I see"
+    ";-;" = "crying"
+    "im" = "I'm"
+    "em" = "them"
+    "theres" = "there's"
+    "oml" = "oh my lord"
+    "ur" = "your"
+    "idk" = "I don't know"
+    "idc" = "I don't care"
+    "ngl" = "not gonna lie"
+    "imo" = "in my opinion"
+    "imho" = "in my honest opinion"
+    "ty" = "thank you"
+    "wdym" = "what do you mean"
+    "lol" = "lol"
+    "tho" = "though"
+    "welp" = "whelp"
+    "wth" = "what the hell"
+    "wtf" = "what the fuck"
+    "og" = "OG"
+    "yt" = "YouTube"
+    "jk" = "JK"
+    "brb" = "BRB"
+    "afk" = "AFK"
+    "smh" = "shaking my head"
+    "gtg" = "gotta go"
+    "g2g" = "gotta go"
+    "ik" = "I know"
+    "ew" = "eww"
+    "uwu" = "oo woo"
+    "=3" = "oo woo"
+    "=D" = "yay!"
+    "<3" = "heart"

@@ -1,4 +1,29 @@
-from typing import Literal, TypedDict
+from typing import Dict, List, Literal, TypedDict
+
+
+_SettingsTTSLimit = TypedDict(
+    "_SettingsTTSLimit",
+    {
+        "Max Word Count": int,
+        "Max Word Length": int,
+    },
+)
+
+
+
+Settings = TypedDict(
+    "Settings",
+    {
+        "Ignore Replies": bool,
+        "Ignore Emojis": bool,
+        "TTS Blacklist": List[str],
+        "Limits": _SettingsTTSLimit,
+        "Voice Overrides": Dict[str, str],
+        "Pitch Overrides": Dict[str, float],
+        "Regex Replacements": Dict[str, str],
+        "Word Replacements": Dict[str, str],
+    },
+)
 
 
 RewardRedemptionStatus = Literal[
