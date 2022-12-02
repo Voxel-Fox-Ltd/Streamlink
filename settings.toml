@@ -44,9 +44,13 @@
 
 # Just straight up regex replacements
 ["Regex Replacements"]
+    "((https?:)?//)?(([\\d\\w]|%[a-fA-f\\d]{2,2})+(:([\\d\\w]|%[a-fA-f\\d]{2,2})+)?@)?([\\d\\w][-\\d\\w]{0,253}[\\d\\w]\\.)+[\\w]{2,63}(:[\\d]+)?(/([-+_~.\\d\\w]|%[a-fA-f\\d]{2,2})*)*(\\?(&?([-+_~.\\d\\w]|%[a-fA-f\\d]{2,2})=?)*)?(#([-+_~.\\d\\w]|%[a-fA-f\\d]{2,2})*)?" = "(link replaced)"
     "^\\?+$" = "huh?"
     "^\\.\\.\\.$" = "umm"
     "^LL$" = "Skill issue."
+    "(?:^|\\W)>:D(?:$|\\W)" = "evil face"
+    "(?:^|\\W)>[:=]\\((?:$|\\W)" = "angry face"
+    "(?:^|\\W)[:=]\\((?:$|\\W)" = "sad face"
 
 # A list of common find/replace word replacements
 # These are done by regex sub at word boundaries
@@ -57,8 +61,6 @@
     "yk" = "you know"
     "omg" = "oh my god"
     "btw" = "by the way"
-    ">=(" = "angry face"
-    "=(" = "sad face"
     "b)" = "cool face"
     "ppl" = "people"
     "ic" = "I see"
@@ -103,3 +105,5 @@
     "ig" = "I guess"
     "alr" = "alright"
     "nvm" = "nevermind"
+    "sus" = "suss"
+    "gn" = "goodnight"
