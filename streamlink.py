@@ -7,15 +7,12 @@ import logging
 import sys
 import argparse
 import pathlib
-from urllib.parse import urlencode
-import random
-import re
 import textwrap
+import glob
+import importlib
 
 from aiohttp import web
 import dotenv
-import emoji
-import toml
 import vlc
 
 from cogs import utils
@@ -29,7 +26,6 @@ parser.add_argument("--validate-token", action="store_true", default=False)
 dotenv.load_dotenv()
 log = logging.getLogger("streamlink")
 ENV_FILE_PATH = pathlib.Path(__file__).parent.resolve() / ".env"
-SETTINGS_FILE_PATH = pathlib.Path(__file__).parent.resolve() / "settings.toml"
 AUDIO_OUTPUT_DEVICES: Dict[str, bytes] = {}
 
 
@@ -47,235 +43,9 @@ def create_play_sound(title: str, **kwargs) -> utils.types.ChannelPointsRewardCr
 def create_rewards() -> List[utils.types.ChannelPointsRewardCreatePayload]:
     sounds = [
         create_play_sound(i['name'], cost=i['cost'])
-        for i in get_settings()["Sound Effects"]["Sounds"]
+        for i in utils.get_settings()["Sound Effects"].get("Sounds", list())
     ]
     return sounds
-
-
-ALL_VOICES = {
-    "matthew": ("Matthew", "1"),
-    "brian": ("Brian", "1.1"),
-    "amy": ("Amy", "1"),
-    "emma": ("Emma", "1"),
-    "geraint": ("Geraint", "1.1"),
-    "russell": ("Russell", "1"),
-    "nicole": ("Nicole", "1"),
-    "joey": ("Joey", "1.2"),
-    "justin": ("Justin", "1"),  # TikTok voice
-    "joanna": ("Joanna", "1"),
-    "kendra": ("Kendra", "1"),
-    "kimberly": ("Kimberly", "1.2"),
-    "salli": ("Salli", "1.1"),
-}
-
-
-def get_audio_devices() -> Dict[str, bytes]:
-    """
-    Get all of the registered audio devices in the system.
-    """
-
-    # Make a VLC instance
-    vlc_instance: vlc.Instance = vlc.Instance()
-    player: vlc.MediaPlayer = vlc_instance.media_player_new()
-
-    # List the devices that are registed
-    devices: Dict[str, bytes] = {}
-    mods = player.audio_output_device_enum()
-    if mods:
-        index = 0
-        mod = mods
-        while mod:
-            mod = mod.contents
-            desc = mod.description.decode('utf-8', 'ignore')
-            # print(f'index = {index}, desc = {desc}')
-            devices[desc] = mod.device
-            mod = mod.next
-            index += 1
-
-    # Free devices
-    # I don't know what this does, but it's there
-    vlc.libvlc_audio_output_device_list_release(mods)
-
-    # And done
-    return devices
-
-def get_chat_output_id() -> bytes:
-    data = get_settings()
-    return AUDIO_OUTPUT_DEVICES.get(data['TTS']['Sound Output'], b'')
-
-
-def get_sound_output_id() -> bytes:
-    data = get_settings()
-    return AUDIO_OUTPUT_DEVICES.get(data['Sound Effects']['Sound Output'], b'')
-
-
-def get_settings() -> utils.types.Settings:
-    """
-    Read and return the settings file.
-    """
-
-    with open(SETTINGS_FILE_PATH) as a:
-        return toml.load(a)  # type: ignore
-
-
-def tts_text_replacement(text: str) -> str:
-    """
-    Replace some common words with things the TTS can actually say.
-    """
-
-    # Get settings
-    settings = get_settings()
-
-    # Remove the reply function
-    if settings['TTS']['Ignore Replies'] and text.startswith("@"):
-        text = text.split(" ", 1)[1]
-
-    # Get the list of replacememnts
-    replacements = settings['TTS']['Word Replacements']
-
-    # Set up our regex function
-    def replacement_function(match):
-        replacement = replacements[match.group(2).strip().lower()]
-        if isinstance(replacement, list):
-            replacement = random.choice(replacement)
-        return match.group(1) + replacement
-
-    # Escape all of our keys
-    keys = [re.escape(i) for i in replacements.keys()]
-
-    # Do the regex sub
-    text = re.sub(
-        "(\\W|^)(" + "|".join(keys) + ")(?=$|\\W)",
-        replacement_function,
-        text,
-        count=0,
-        flags=re.IGNORECASE | re.MULTILINE,
-    )
-
-    # Do our other regex sub
-    for i, o in settings['TTS']['Regex Replacements'].items():
-        text = re.sub(
-            i,
-            o if isinstance(o, str) else random.choice(o),
-            text,
-            count=0,
-            flags=re.IGNORECASE | re.MULTILINE,
-        )
-
-    # Remove the emojis
-    if settings['TTS']['Ignore Emojis']:
-        for i in emoji.distinct_emoji_list(text):
-            text = text.replace(i, " ")
-
-    # And done
-    return text
-
-
-def get_voice(username: str) -> str:
-    """
-    Get the voice for a given username.
-    """
-
-    # See if we have an override
-    settings = get_settings()
-    if username.lower() in settings['TTS']['Voice Overrides']:
-        return settings['TTS']['Voice Overrides'][username.lower()]
-
-    # Otherwise, just return the default
-    r = random.Random(username + "a")
-    return r.choice(list(ALL_VOICES.keys()))
-
-
-def get_pitch_shift(username: str) -> float:
-    """
-    Get a pitch shift for a given username.
-    """
-
-    # See if we have an override
-    settings = get_settings()
-    if username.lower() in settings['TTS']['Pitch Overrides']:
-        return settings['TTS']['Pitch Overrides'][username.lower()]
-
-    # Otherwise, just return the default
-    r = random.Random(username + "a")
-    return r.choice(list(range(-10, 10, 2))) / 10
-
-
-async def handle_run_tts(
-        message: str,
-        limits: utils.types.Limits,
-        voice_key: str = "brian",
-        pitch_shift: float = 0) -> bool:
-    """
-    Handle a user on Twitch redeeming a run TTS reward
-    """
-
-    log.debug(f"TTS received - {message}")
-
-    # See how long their request is
-    words = message.split(" ")
-    if len(words) > limits["max_word_count"]:
-        log.info("Hit max word count")
-        return False
-
-    # See how long the words are
-    if any(i for i in words if len(i) >= limits["max_word_length"]):
-        log.info("Hit max word length")
-        return False
-
-    # Get the voice that we want to use
-    voice = ALL_VOICES[voice_key]
-
-    # Publish the voice with SE
-    url = "https://api.streamelements.com/kappa/v2/speech?" + urlencode({
-        "voice": voice[0],
-        "text": message,
-    })
-
-    # process = await asyncio.create_subprocess_exec(
-    #     "vlc",
-    #     "-I",
-    #     "dummy",
-    #     "--dummy-quiet",
-        # "--rate",
-        # voice[1],
-        # "--audio-filter",
-        # "scaletempo_pitch",
-    #     "--pitch-shift",
-    #     str(pitch_shift),
-    #     url,
-    #     "vlc://quit",
-    # )
-
-    vlc_instance: vlc.Instance = vlc.Instance(
-        "--rate",
-        voice[1],
-        "--audio-filter",
-        "scaletempo_pitch",
-    )
-    vlc_player: vlc.MediaPlayer = vlc_instance.media_player_new()
-    vlc_media: vlc.Media = vlc_instance.media_new(url)
-    vlc_player.set_media(vlc_media)
-    vlc_player.audio_output_device_set(None, get_chat_output_id())
-    vlc_player.play()
-
-    log.info("Running TTS with voice {0} - {1}".format(
-        voice[0],
-        message
-    ))
-    log.debug(url)
-    try:
-        await asyncio.sleep(1)
-        while vlc_player.is_playing():
-            await asyncio.sleep(1)
-    except asyncio.CancelledError:
-        log.info("Cancelling TTS with voice {0} - {1}".format(
-            voice[0],
-            message
-        ))
-    finally:
-        vlc_player.stop()
-    return True
 
 
 def get_twitch_auth_redirect(queue: asyncio.Queue):
@@ -312,50 +82,52 @@ def get_twitch_auth_redirect(queue: asyncio.Queue):
     return wrapper
 
 
-async def twitch_message_loop(twitch: utils.TwitchConnector):
+async def twitch_chat_loop(twitch: utils.TwitchConnector):
     """
     Deal with all of the chat input from Twitch to be able to queue up all
     of the TTS messages.
     """
 
     # If we're gonna error anywhere, it should be here
-    get_settings()
+    utils.get_settings()
 
     # Loop forever
     while True:
 
         # Get the username and message
         user_info, chat = await twitch.chat_queue.get()
-
-        # See if the user is blacklisted
-        settings = get_settings()
-        if user_info.username.lower() in settings['TTS']['TTS Blacklist']:
-            log.info("Skipping blacklisted user {0}".format(user_info.username))
-            continue
-
-        # Don't say messages that are commands
-        elif chat.startswith("!"):
-            log.info("Ignoring command")
-            continue
-
-        # Filter out links
-        elif chat.startswith("http"):
-            log.info("Ignoring URL")
-            continue
-
-        # Schedule our coro
-        coro = handle_run_tts(
-            tts_text_replacement(chat),
-            {
-                "max_word_count": settings['TTS']['Limits']['Max Word Count'],
-                "max_word_length": settings['TTS']['Limits']['Max Word Length'],
-            },
-            get_voice(user_info.username),
-            get_pitch_shift(user_info.username),
-        )
+        for i in twitch.chat_handlers:
+            coro = i(twitch, user_info, chat)
+            asyncio.create_task(coro)
 
 
-async def twitch_points_loop(twitch: utils.TwitchConnector, oauth: utils.TwitchOauth):
+async def handle_redemption(
+        twitch: utils.TwitchConnector,
+        oauth: utils.TwitchOauth,
+        redemption: utils.types.ChannelPointsEventMessage,
+        func) -> None:
+    """
+    A wrapper around a redemption to mark it as done when it's done.
+    """
+
+    status = await func(twitch, redemption['data']['redemption'])
+    if status is None:
+        return
+
+    redemption_id = redemption['data']['redemption']['id']
+    reward_id = redemption['data']['redemption']['reward']['id']
+    await oauth.update_redemption_status(
+        twitch.access_token,
+        redemption_id,
+        twitch.channel_id,
+        reward_id,
+        "FULFILLED" if status else "CANCELED",
+    )
+
+
+async def twitch_points_loop(
+        twitch: utils.TwitchConnector,
+        oauth: utils.TwitchOauth):
     """
     The main event loop for dealing with all of the message queueing system.
     """
@@ -365,47 +137,11 @@ async def twitch_points_loop(twitch: utils.TwitchConnector, oauth: utils.TwitchO
 
         # Get the messages from the point redemption
         message = await twitch.message_queue.get()
-        status = None
-
-        if message is None:
-            return
-
-        # Onto Twitch channel point redemptions
-        # Get the title of the reward
-        reward_title = message['data']['redemption']['reward']['title']
-
-        # Check if it's something we care about
-        if reward_title.startswith("Play sound: "):
-
-            # Get the path to the file we want to play
-            here = pathlib.Path(__file__).parent
-
-            # Try and play it via VLC
+        for i in twitch.reward_handlers:
             try:
-                partial = "sounds/" + reward_title[len("Play sound: "):] + ".wav"
-                filename = (here / partial).resolve()
-                vlc_instance: vlc.Instance = vlc.Instance()
-                vlc_player: vlc.MediaPlayer = vlc_instance.media_player_new()
-                vlc_media: vlc.Media = vlc_instance.media_new(filename)
-                vlc_player.set_media(vlc_media)
-                vlc_player.audio_output_device_set(None, get_sound_output_id())
-                vlc_player.play()
-                status = True
+                await handle_redemption(twitch, oauth, message, i)
             except Exception as e:
-                log.error("Error playing sound file", exc_info=e)
-                status = False
-
-        # See if we should mark it as redeemed
-        if status is not None:
-            redemption_id = message['data']['redemption']['id']
-            reward_id = message['data']['redemption']['reward']['id']
-            await oauth.update_redemption_status(
-                twitch.access_token,
-                redemption_id,
-                twitch.channel_id,
-                reward_id,
-                "FULFILLED" if status else "CANCELED",
-            )
+                log.exception("Failed to handle redemption", exc_info=e)
 
 
 async def get_access_token(oauth: utils.TwitchOauth) -> str:
@@ -507,7 +243,7 @@ async def main():
             oauth
             .get_user_id_from_token(access_token)
         )
-    except Exception as e:
+    except Exception:
         log.error("Failed to get channel ID", exc_info=True)
         remove_access_token_from_env()
         input("Press enter to exit... ")
@@ -524,9 +260,21 @@ async def main():
     # Connect to Twitch's websockets
     twitch = utils.TwitchConnector(access_token, channel_id, channel_name)
     await twitch.run()
+    twitch.AUDIO_OUTPUT_DEVICES = utils.get_audio_devices()  # type: ignore
+
+    # Go through each cog and add the chat and reward handlers
+    for cog in glob.glob("cogs/*.py"):
+        module = importlib.import_module(cog[:-3].replace(os.sep, "."))
+        if hasattr(module, "handle_message"):
+            twitch.chat_handlers.append(module.handle_message)
+            log.info("Loaded chat handler cog %s", module.__name__)
+        if hasattr(module, "handle_redemption"):
+            twitch.reward_handlers.append(module.handle_redemption)
+            log.info("Loaded redemption handler cog %s", module.__name__)
 
     # Create TTS connector
-    message_loop_task = asyncio.create_task(twitch_message_loop(twitch))
+    log.info("Starting message and point tasks...")
+    message_loop_task = asyncio.create_task(twitch_chat_loop(twitch))
     points_loop_task = asyncio.create_task(twitch_points_loop(twitch, oauth))
 
     # And message handling
@@ -541,7 +289,7 @@ async def main():
                     log.error("Message loop task failed", exc_info=err)
                     log.info("Restarting message loop in 10 seconds...")
                     await asyncio.sleep(10)
-                    coro = twitch_message_loop(twitch)
+                    coro = twitch_chat_loop(twitch)
                     message_loop_task = asyncio.create_task(coro)
                     await asyncio.sleep(0.1)
                     if message_loop_task.done():
@@ -582,9 +330,6 @@ if __name__ == "__main__":
         stream=sys.stdout,
         level=getattr(logging, args.loglevel.upper()),
     )
-
-    # Get our audio devices
-    AUDIO_OUTPUT_DEVICES = get_audio_devices()
 
     # Run our main
     try:

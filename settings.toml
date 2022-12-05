@@ -92,13 +92,13 @@
 
     # Set up limits for the amount of words/characters that will get put through
     # into the TTS system
-    ["Limits"]
+    ["TTS"."Limits"]
         "Max Word Count" = 50
         "Max Word Length" = 16
 
     # A list of users who have pre-set voices, and will not be rolled a
     # random one
-    ["Voice Overrides"]
+    ["TTS"."Voice Overrides"]
         mercybot77 = "matthew"
         maxlovetoby = "russell"
         glooomygoose = "justin"
@@ -115,13 +115,13 @@
 
     # A list of users who have pre-set voice pitches, and will not be rolled a
     # random one
-    ["Pitch Overrides"]
+    ["TTS"."Pitch Overrides"]
         angelicaugust = 12
         ccactus371 = -12
         cally_muffin_be_puffin123 = -3
 
     # Just straight up regex replacements
-    ["Regex Replacements"]
+    ["TTS"."Regex Replacements"]
         "^[\\? ]+$" = "huh?"
         "^\\.\\.\\.$" = "umm"
         "^LL$" = "Skill issue."
@@ -134,7 +134,7 @@
 
     # A list of common find/replace word replacements
     # These are done by regex sub at word boundaries
-    ["Word Replacements"]
+    ["TTS"."Word Replacements"]
         "cmon" = "come on"
         "epicer" = "epic er"
         "kae" = "Kay"

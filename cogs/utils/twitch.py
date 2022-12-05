@@ -1,7 +1,7 @@
 import json
 import webbrowser
 from urllib.parse import quote, urlencode
-from typing import TYPE_CHECKING, List, Optional, Tuple
+from typing import TYPE_CHECKING, ClassVar, List, Optional, Tuple
 import asyncio
 import logging
 import re
@@ -305,6 +305,9 @@ class TwitchConnector:
 
         self.message_queue = asyncio.Queue[ChannelPointsEventMessage]()
         self.chat_queue = asyncio.Queue[Tuple[TwitchChatter, str]]()
+
+        self.chat_handlers: list = []
+        self.reward_handlers: list = []
 
     async def handle_message_receive(self):
         """
