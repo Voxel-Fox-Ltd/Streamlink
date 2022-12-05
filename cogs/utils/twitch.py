@@ -11,10 +11,11 @@ import aiohttp
 import websockets
 from typing_extensions import Self
 
-from _types import (
+from .types import (
     ChannelPointsEventMessage,
     ChannelPointsRewardCreatePayload,
     RewardRedemptionStatus,
+    ChannelPointsRewardPayload,
 )
 
 if TYPE_CHECKING:
@@ -179,7 +180,7 @@ class TwitchOauth:
             channel_id: str,
             rewards: List[ChannelPointsRewardCreatePayload]) -> bool:
         """
-        Create the "change headphone colour" reward.
+        Create the rewards.
         """
 
         headers = {
@@ -204,6 +205,52 @@ class TwitchOauth:
                     allowed_error = "CREATE_CUSTOM_REWARD_DUPLICATE_REWARD"
                     responses.append(data['message'] == allowed_error)
         return all(responses)
+
+    async def delete_rewards(
+            self,
+            access_token: str,
+            channel_id: str,
+            rewards: List[ChannelPointsRewardCreatePayload]) -> bool:
+        """
+        Create the "change headphone colour" reward.
+        """
+
+        headers = {
+            "Authorization": f"Bearer {access_token}",
+            "Client-Id": self.client_id,
+        }
+        params = {
+            "broadcaster_id": channel_id,
+            "only_manageable_rewards": "true",
+        }
+        async with aiohttp.ClientSession() as session:
+
+            # Get the current rewards
+            site = await session.get(
+                "https://api.twitch.tv/helix/channel_points/custom_rewards",
+                params=params, headers=headers,
+            )
+            data: List[ChannelPointsRewardPayload] = (await site.json())['data']
+
+            # Get the IDs of rewards that match with the ones we want to disable
+            current_reward_names = [r['title'] for r in rewards]
+            ids = [
+                d['id']
+                for d in data
+                if d['title'] in current_reward_names
+            ]
+
+            # Disable them
+            for id in ids:
+                params = {
+                    "broadcaster_id": channel_id,
+                    "id": id,
+                }
+                site = await session.delete(
+                    "https://api.twitch.tv/helix/channel_points/custom_rewards",
+                    # params=params, json={"is_enabled": False}, headers=headers,
+                    params=params, headers=headers,
+                )
 
     async def update_redemption_status(
             self,

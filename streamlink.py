@@ -30,7 +30,6 @@ dotenv.load_dotenv()
 log = logging.getLogger("streamlink")
 ENV_FILE_PATH = pathlib.Path(__file__).parent.resolve() / ".env"
 SETTINGS_FILE_PATH = pathlib.Path(__file__).parent.resolve() / "settings.toml"
-TTS_PROCESS_QUEUE: List[asyncio.Task] = []
 AUDIO_OUTPUT_DEVICES: Dict[str, bytes] = {}
 
 
@@ -45,28 +44,12 @@ def create_play_sound(title: str, **kwargs) -> utils.types.ChannelPointsRewardCr
     }
 
 
-REWARDS: List[utils.types.ChannelPointsRewardCreatePayload] = [
-    create_play_sound("laughtrack"),
-    create_play_sound("shotgun"),
-    create_play_sound("jab"),
-    create_play_sound("police siren"),
-    create_play_sound("vine boom"),
-    create_play_sound("Roblox death"),
-    create_play_sound("rimshot"),
-    create_play_sound("uwu"),
-    create_play_sound("bruh"),
-    create_play_sound("aughhhhh"),
-    create_play_sound("Spongebob disappointed"),
-    create_play_sound("oh my god"),
-    create_play_sound("a bean"),
-    create_play_sound("I can't believe you've done this"),
-    create_play_sound("clown"),
-    create_play_sound("boo"),
-    create_play_sound("hello there"),
-    create_play_sound("airhorn"),
-    create_play_sound("discord ping", cost=10),
-    create_play_sound("gorsh", cost=10),
-]
+def create_rewards() -> List[utils.types.ChannelPointsRewardCreatePayload]:
+    sounds = [
+        create_play_sound(i['name'], cost=i['cost'])
+        for i in get_settings()["Sound Effects"]["Sounds"]
+    ]
+    return sounds
 
 
 ALL_VOICES = {
@@ -118,12 +101,12 @@ def get_audio_devices() -> Dict[str, bytes]:
 
 def get_chat_output_id() -> bytes:
     data = get_settings()
-    return AUDIO_OUTPUT_DEVICES.get(data['TTS']['Chat Output'], b'')
+    return AUDIO_OUTPUT_DEVICES.get(data['TTS']['Sound Output'], b'')
 
 
 def get_sound_output_id() -> bytes:
     data = get_settings()
-    return AUDIO_OUTPUT_DEVICES.get(data['TTS']['Sound Output'], b'')
+    return AUDIO_OUTPUT_DEVICES.get(data['Sound Effects']['Sound Output'], b'')
 
 
 def get_settings() -> utils.types.Settings:
@@ -370,7 +353,6 @@ async def twitch_message_loop(twitch: utils.TwitchConnector):
             get_voice(user_info.username),
             get_pitch_shift(user_info.username),
         )
-        TTS_PROCESS_QUEUE.append(asyncio.Task(coro))
 
 
 async def twitch_points_loop(twitch: utils.TwitchConnector, oauth: utils.TwitchOauth):
@@ -532,7 +514,12 @@ async def main():
         return
 
     # Create the rewards as defined in the Twitch module
-    await oauth.create_rewards(access_token, channel_id, REWARDS)
+    log.info("Creating channel points rewards...")
+    await oauth.create_rewards(
+        access_token,
+        channel_id,
+        create_rewards(),
+    )
 
     # Connect to Twitch's websockets
     twitch = utils.TwitchConnector(access_token, channel_id, channel_name)
@@ -566,27 +553,24 @@ async def main():
             # Sleep so we have something to loop
             await asyncio.sleep(0.1)
 
-            # Remove done TTS tasks from memory
-            for t in TTS_PROCESS_QUEUE:
-                if t.done():
-                    TTS_PROCESS_QUEUE.remove(t)
-
         # Catch being cancelled so we can look into it
         except asyncio.CancelledError:
 
-            # If there are any running TTS tasks, kill them one by one first
-            try:
-                tts_task = TTS_PROCESS_QUEUE.pop(0)
-                tts_task.cancel()
-                continue
-            except IndexError:
-                pass
-
-            # No tasks to cancel, let's just continue as is
+            # Cancel our tasks and run our cleanups
             message_loop_task.cancel()
             points_loop_task.cancel()
             await twitch.cleanup()
-            break
+
+            # Disable each of the added rewards
+            log.info("Deleting rewards...")
+            await oauth.delete_rewards(
+                access_token,
+                channel_id,
+                create_rewards(),
+            )
+
+            # And exit
+            raise
 
 
 if __name__ == "__main__":

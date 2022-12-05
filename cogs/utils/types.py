@@ -1,4 +1,4 @@
-from typing import Dict, List, Literal, TypedDict
+from typing import Dict, List, Literal, TypedDict, Optional
 
 
 _SettingsTTSLimit = TypedDict(
@@ -13,7 +13,6 @@ _SettingsTTSLimit = TypedDict(
 _SettingsTTS = TypedDict(
     "_SettingsTTS",
     {
-        "Chat Output": str,
         "Sound Output": str,
         "Ignore Replies": bool,
         "Ignore Emojis": bool,
@@ -27,10 +26,30 @@ _SettingsTTS = TypedDict(
 )
 
 
+_SettingsSoundEffectsSound = TypedDict(
+    "_SettingsSoundEffectsSound",
+    {
+        "name": str,
+        "path": str,
+        "cost": int,
+    }
+)
+
+
+_SettingsSoundEffects = TypedDict(
+    "_SettingsSoundEffects",
+    {
+        "Sound Output": str,
+        "Sounds": list[_SettingsSoundEffectsSound]
+    }
+)
+
+
 Settings = TypedDict(
     "Settings",
     {
         "TTS": _SettingsTTS,
+        "Sound Effects": _SettingsSoundEffects,
     },
 )
 
@@ -120,3 +139,13 @@ class _ChannelPointsRewardCreatePayloadOptional(TypedDict, total=False):
 class ChannelPointsRewardCreatePayload(_ChannelPointsRewardCreatePayloadOptional):
     title: str
     cost: int
+
+
+class ChannelPointsRewardPayload(ChannelPointsRewardCreatePayload):
+    id: str
+    is_paused: bool
+    is_in_stock: bool
+    default_image: Image
+    image: Image
+    is_sub_only: bool
+    cooldown_expires_at: Optional[str]

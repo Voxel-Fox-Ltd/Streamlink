@@ -1,10 +1,81 @@
-# Settings that all regard TTS
-[TTS]
+# Settings that regard sounds
+["Sound Effects"]
 
-    # Set the names out output devices here
-    # If a device is not found, the default is used instead
-    "Chat Output" = "Chat (2- BEACN Mix Create)"
+    # Name for the output device to use
+    # If a device is empty or not found, the system default is used instead
     "Sound Output" = "Aux 1 / Hardware (2- BEACN Mix Create)"
+
+    # A list of sound effect objects
+    # Sound effects are grabbed via the "sounds" folder, as wave files;
+    # ie "sounds/{name}.wav"
+    [["Sound Effects"."Sounds"]]
+        name = "laughtrack"
+        cost = 50
+    # [["Sound Effects"."Sounds"]]
+    #     name = "shotgun"
+    #     cost = 50
+    # [["Sound Effects"."Sounds"]]
+    #     name = "jab"
+    #     cost = 50
+    # [["Sound Effects"."Sounds"]]
+    #     name = "police siren"
+    #     cost = 50
+    [["Sound Effects"."Sounds"]]
+        name = "vine boom"
+        cost = 50
+    # [["Sound Effects"."Sounds"]]
+    #     name = "Roblox death"
+    #     cost = 50
+    [["Sound Effects"."Sounds"]]
+        name = "rimshot"
+        cost = 50
+    [["Sound Effects"."Sounds"]]
+        name = "uwu"
+        cost = 50
+    # [["Sound Effects"."Sounds"]]
+    #     name = "bruh"
+    #     cost = 50
+    # [["Sound Effects"."Sounds"]]
+    #     name = "aughhhhh"
+    #     cost = 50
+    [["Sound Effects"."Sounds"]]
+        name = "Spongebob disappointed"
+        cost = 50
+    # [["Sound Effects"."Sounds"]]
+    #     name = "oh my god"
+    #     cost = 50
+    # [["Sound Effects"."Sounds"]]
+    #     name = "a bean"
+    #     cost = 50
+    # [["Sound Effects"."Sounds"]]
+    #     name = "I can't believe you've done this"
+    #     cost = 50
+    # [["Sound Effects"."Sounds"]]
+    #     name = "clown"
+    #     cost = 50
+    [["Sound Effects"."Sounds"]]
+        name = "boo"
+        cost = 50
+    # [["Sound Effects"."Sounds"]]
+    #     name = "hello there"
+    #     cost = 50
+    [["Sound Effects"."Sounds"]]
+        name = "airhorn"
+        cost = 50
+    # [["Sound Effects"."Sounds"]]
+    #     name = "discord ping"
+    #     cost = 50
+    [["Sound Effects"."Sounds"]]
+        name = "gorsh"
+        cost = 50
+
+
+# Settings that all regard TTS
+["TTS"]
+
+    # Name for the output device to use
+    # If a device is empty or not found, the system default is used instead
+    "Sound Output" = "Chat (2- BEACN Mix Create)"
 
     # Whether or not to ignore the reply mention at the start of messages
     "Ignore Replies" = true
