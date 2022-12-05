@@ -18,8 +18,7 @@ import emoji
 import toml
 import vlc
 
-from _types import Limits, ChannelPointsRewardCreatePayload, Settings
-from twitch import TwitchConnector, TwitchOauth
+from cogs import utils
 
 
 parser = argparse.ArgumentParser()
@@ -35,7 +34,7 @@ TTS_PROCESS_QUEUE: List[asyncio.Task] = []
 AUDIO_OUTPUT_DEVICES: Dict[str, bytes] = {}
 
 
-def create_play_sound(title: str, **kwargs) -> ChannelPointsRewardCreatePayload:
+def create_play_sound(title: str, **kwargs) -> utils.types.ChannelPointsRewardCreatePayload:
     return {
         "title": f"Play sound: {title}",
         "cost": kwargs.get("cost", 69),
@@ -46,7 +45,7 @@ def create_play_sound(title: str, **kwargs) -> ChannelPointsRewardCreatePayload:
     }
 
 
-REWARDS: List[ChannelPointsRewardCreatePayload] = [
+REWARDS: List[utils.types.ChannelPointsRewardCreatePayload] = [
     create_play_sound("laughtrack"),
     create_play_sound("shotgun"),
     create_play_sound("jab"),
@@ -65,6 +64,8 @@ REWARDS: List[ChannelPointsRewardCreatePayload] = [
     create_play_sound("boo"),
     create_play_sound("hello there"),
     create_play_sound("airhorn"),
+    create_play_sound("discord ping", cost=10),
+    create_play_sound("gorsh", cost=10),
 ]
 
 
@@ -117,15 +118,15 @@ def get_audio_devices() -> Dict[str, bytes]:
 
 def get_chat_output_id() -> bytes:
     data = get_settings()
-    return AUDIO_OUTPUT_DEVICES.get(data['Chat Output'], b'')
+    return AUDIO_OUTPUT_DEVICES.get(data['TTS']['Chat Output'], b'')
 
 
 def get_sound_output_id() -> bytes:
     data = get_settings()
-    return AUDIO_OUTPUT_DEVICES.get(data['Sound Output'], b'')
+    return AUDIO_OUTPUT_DEVICES.get(data['TTS']['Sound Output'], b'')
 
 
-def get_settings() -> Settings:
+def get_settings() -> utils.types.Settings:
     """
     Read and return the settings file.
     """
@@ -143,11 +144,11 @@ def tts_text_replacement(text: str) -> str:
     settings = get_settings()
 
     # Remove the reply function
-    if settings['Ignore Replies'] and text.startswith("@"):
+    if settings['TTS']['Ignore Replies'] and text.startswith("@"):
         text = text.split(" ", 1)[1]
 
     # Get the list of replacememnts
-    replacements = settings['Word Replacements']
+    replacements = settings['TTS']['Word Replacements']
 
     # Set up our regex function
     def replacement_function(match):
@@ -169,17 +170,17 @@ def tts_text_replacement(text: str) -> str:
     )
 
     # Do our other regex sub
-    for i, o in settings['Regex Replacements'].items():
+    for i, o in settings['TTS']['Regex Replacements'].items():
         text = re.sub(
             i,
-            o,
+            o if isinstance(o, str) else random.choice(o),
             text,
             count=0,
             flags=re.IGNORECASE | re.MULTILINE,
         )
 
     # Remove the emojis
-    if settings['Ignore Emojis']:
+    if settings['TTS']['Ignore Emojis']:
         for i in emoji.distinct_emoji_list(text):
             text = text.replace(i, " ")
 
@@ -194,8 +195,8 @@ def get_voice(username: str) -> str:
 
     # See if we have an override
     settings = get_settings()
-    if username.lower() in settings['Voice Overrides']:
-        return settings['Voice Overrides'][username.lower()]
+    if username.lower() in settings['TTS']['Voice Overrides']:
+        return settings['TTS']['Voice Overrides'][username.lower()]
 
     # Otherwise, just return the default
     r = random.Random(username + "a")
@@ -209,8 +210,8 @@ def get_pitch_shift(username: str) -> float:
 
     # See if we have an override
     settings = get_settings()
-    if username.lower() in settings['Pitch Overrides']:
-        return settings['Pitch Overrides'][username.lower()]
+    if username.lower() in settings['TTS']['Pitch Overrides']:
+        return settings['TTS']['Pitch Overrides'][username.lower()]
 
     # Otherwise, just return the default
     r = random.Random(username + "a")
@@ -219,7 +220,7 @@ def get_pitch_shift(username: str) -> float:
 
 async def handle_run_tts(
         message: str,
-        limits: Limits,
+        limits: utils.types.Limits,
         voice_key: str = "brian",
         pitch_shift: float = 0) -> bool:
     """
@@ -328,7 +329,7 @@ def get_twitch_auth_redirect(queue: asyncio.Queue):
     return wrapper
 
 
-async def twitch_message_loop(twitch: TwitchConnector):
+async def twitch_message_loop(twitch: utils.TwitchConnector):
     """
     Deal with all of the chat input from Twitch to be able to queue up all
     of the TTS messages.
@@ -345,7 +346,7 @@ async def twitch_message_loop(twitch: TwitchConnector):
 
         # See if the user is blacklisted
         settings = get_settings()
-        if user_info.username.lower() in settings['TTS Blacklist']:
+        if user_info.username.lower() in settings['TTS']['TTS Blacklist']:
             log.info("Skipping blacklisted user {0}".format(user_info.username))
             continue
 
@@ -363,8 +364,8 @@ async def twitch_message_loop(twitch: TwitchConnector):
         coro = handle_run_tts(
             tts_text_replacement(chat),
             {
-                "max_word_count": settings['Limits']['Max Word Count'],
-                "max_word_length": settings['Limits']['Max Word Length'],
+                "max_word_count": settings['TTS']['Limits']['Max Word Count'],
+                "max_word_length": settings['TTS']['Limits']['Max Word Length'],
             },
             get_voice(user_info.username),
             get_pitch_shift(user_info.username),
@@ -372,7 +373,7 @@ async def twitch_message_loop(twitch: TwitchConnector):
         TTS_PROCESS_QUEUE.append(asyncio.Task(coro))
 
 
-async def twitch_points_loop(twitch: TwitchConnector, oauth: TwitchOauth):
+async def twitch_points_loop(twitch: utils.TwitchConnector, oauth: utils.TwitchOauth):
     """
     The main event loop for dealing with all of the message queueing system.
     """
@@ -425,7 +426,7 @@ async def twitch_points_loop(twitch: TwitchConnector, oauth: TwitchOauth):
             )
 
 
-async def get_access_token(oauth: TwitchOauth) -> str:
+async def get_access_token(oauth: utils.TwitchOauth) -> str:
     """
     Get a valid access token from the user.
     """
@@ -511,7 +512,7 @@ async def main():
     """
 
     # Set up our auth
-    oauth = TwitchOauth(
+    oauth = utils.TwitchOauth(
         os.getenv("CLIENT_ID", "y4m5g5monzwb2kaxeak1bgh71erpgf"),
     )
     access_token = await get_access_token(oauth)
@@ -534,7 +535,7 @@ async def main():
     await oauth.create_rewards(access_token, channel_id, REWARDS)
 
     # Connect to Twitch's websockets
-    twitch = TwitchConnector(access_token, channel_id, channel_name)
+    twitch = utils.TwitchConnector(access_token, channel_id, channel_name)
     await twitch.run()
 
     # Create TTS connector

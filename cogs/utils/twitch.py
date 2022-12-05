@@ -21,6 +21,13 @@ if TYPE_CHECKING:
     from websockets.client import WebSocketClientProtocol
 
 
+__all__ = (
+    "TwitchChatter",
+    "TwitchOauth",
+    "TwitchConnector",
+)
+
+
 log = logging.getLogger("streamlink.twitch")
 
 

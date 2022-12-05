@@ -1,109 +1,129 @@
-# Set the names out output devices here
-# If a device is not found, the default is used instead
-"Chat Output" = "Chat (2- BEACN Mix Create)"
-"Sound Output" = "Aux 1 / Hardware (2- BEACN Mix Create)"
+# Settings that all regard TTS
+[TTS]
 
-# Whether or not to ignore the reply mention at the start of messages
-"Ignore Replies" = true
+    # Set the names out output devices here
+    # If a device is not found, the default is used instead
+    "Chat Output" = "Chat (2- BEACN Mix Create)"
+    "Sound Output" = "Aux 1 / Hardware (2- BEACN Mix Create)"
 
-# Whether or not to filter out emojis
-"Ignore Emojis" = true
+    # Whether or not to ignore the reply mention at the start of messages
+    "Ignore Replies" = true
 
-# A list of users who are ignored for the TTS
-"TTS Blacklist" = [
-    "streamlabs",
-]
+    # Whether or not to filter out emojis
+    "Ignore Emojis" = true
 
-# Set up limits for the amount of words/characters that will get put through
-# into the TTS system
-["Limits"]
-    "Max Word Count" = 50
-    "Max Word Length" = 16
+    # A list of users who are ignored for the TTS
+    "TTS Blacklist" = [
+        "streamlabs",
+        "catdotjs",
+        "maxlovetoby",
+    ]
 
-# A list of users who have pre-set voices, and will not be rolled a
-# random one
-["Voice Overrides"]
-    mercybot77 = "matthew"
-    maxlovetoby = "russell"
-    glooomygoose = "justin"
-    deejaym2k = "brian"
-    kepic2 = "salli"
-    marshshshshshshsh = "kimberly"
-    vineyboi6 = "russell"
-    shallottheprince = "brian"
-    boo_wh0 = "russell"
-    thedevpanda = "geraint"
-    cally_muffin_be_puffin123 = "kimberly"
+    # Set up limits for the amount of words/characters that will get put through
+    # into the TTS system
+    ["Limits"]
+        "Max Word Count" = 50
+        "Max Word Length" = 16
 
-# A list of users who have pre-set voice pitches, and will not be rolled a
-# random one
-["Pitch Overrides"]
-    angelicaugust = 12
-    ccactus371 = -12
-    cally_muffin_be_puffin123 = -3
+    # A list of users who have pre-set voices, and will not be rolled a
+    # random one
+    ["Voice Overrides"]
+        mercybot77 = "matthew"
+        maxlovetoby = "russell"
+        glooomygoose = "justin"
+        deejaym2k = "brian"
+        kepic2 = "salli"
+        marshshshshshshsh = "kimberly"
+        vineyboi6 = "russell"
+        shallottheprince = "brian"
+        boo_wh0 = "russell"
+        thedevpanda = "geraint"
+        cally_muffin_be_puffin123 = "kimberly"
+        laundmo = "salli"
+        vinthedoofus = "geraint"
 
-# Just straight up regex replacements
-["Regex Replacements"]
-    "((https?:)?//)?(([\\d\\w]|%[a-fA-f\\d]{2,2})+(:([\\d\\w]|%[a-fA-f\\d]{2,2})+)?@)?([\\d\\w][-\\d\\w]{0,253}[\\d\\w]\\.)+[\\w]{2,63}(:[\\d]+)?(/([-+_~.\\d\\w]|%[a-fA-f\\d]{2,2})*)*(\\?(&?([-+_~.\\d\\w]|%[a-fA-f\\d]{2,2})=?)*)?(#([-+_~.\\d\\w]|%[a-fA-f\\d]{2,2})*)?" = "(link replaced)"
-    "^\\?+$" = "huh?"
-    "^\\.\\.\\.$" = "umm"
-    "^LL$" = "Skill issue."
-    "(?:^|\\W)>:D(?:$|\\W)" = "evil face"
-    "(?:^|\\W)>[:=]\\((?:$|\\W)" = "angry face"
-    "(?:^|\\W)[:=]\\((?:$|\\W)" = "sad face"
+    # A list of users who have pre-set voice pitches, and will not be rolled a
+    # random one
+    ["Pitch Overrides"]
+        angelicaugust = 12
+        ccactus371 = -12
+        cally_muffin_be_puffin123 = -3
 
-# A list of common find/replace word replacements
-# These are done by regex sub at word boundaries
-["Word Replacements"]
-    "cmon" = "come on"
-    "epicer" = "epic er"
-    "kae" = "Kay"
-    "yk" = "you know"
-    "omg" = "oh my god"
-    "btw" = "by the way"
-    "b)" = "cool face"
-    "ppl" = "people"
-    "ic" = "I see"
-    ";-;" = "crying"
-    "im" = "I'm"
-    "em" = "them"
-    "theres" = "there's"
-    "oml" = "oh my lord"
-    "ur" = "your"
-    "idk" = "I don't know"
-    "idc" = "I don't care"
-    "ngl" = "not gonna lie"
-    "imo" = "in my opinion"
-    "imho" = "in my honest opinion"
-    "ty" = "thank you"
-    "wdym" = "what do you mean"
-    "lol" = "teehee"
-    "lmao" = "teehee"
-    "tho" = "though"
-    "welp" = "whelp"
-    "wth" = "what the hell"
-    "wtf" = "what the fuck"
-    "og" = "OG"
-    "yt" = "YouTube"
-    "jk" = "JK"
-    "brb" = "BRB"
-    "afk" = "AFK"
-    "smh" = "shaking my head"
-    "gtg" = "gotta go"
-    "g2g" = "gotta go"
-    "ik" = "I know"
-    "ew" = "eww"
-    "uwu" = "oo woo"
-    "=3" = "oo woo"
-    "=D" = "yay!"
-    "<3" = "heart"
-    "fr" = "for real"
-    "ikr" = "I know, right?"
-    "yw" = "you're welcome"
-    "dont" = "don't"
-    "rn" = "right now"
-    "ig" = "I guess"
-    "alr" = "alright"
-    "nvm" = "nevermind"
-    "sus" = "suss"
-    "gn" = "goodnight"
+    # Just straight up regex replacements
+    ["Regex Replacements"]
+        "^[\\? ]+$" = "huh?"
+        "^\\.\\.\\.$" = "umm"
+        "^LL$" = "Skill issue."
+        "(?:^|\\W)>:D(?:$|\\W)" = "evil face"
+        "(?:^|\\W)>[:=]\\((?:$|\\W)" = "angry face"
+        "(?:^|\\W)[:=]\\((?:$|\\W)" = "sad face"
+        "(?:^|\\W)0/10(?:$|\\W)" = "0 out of 10"
+        "(?:^|\\W)10/10(?:$|\\W)" = "10 out of 10"
+        "(?:^|\\W)cu m(?:$|\\W)" = "cumb"
+
+    # A list of common find/replace word replacements
+    # These are done by regex sub at word boundaries
+    ["Word Replacements"]
+        "cmon" = "come on"
+        "epicer" = "epic er"
+        "kae" = "Kay"
+        "yk" = "you know"
+        "omg" = "oh my god"
+        "btw" = "by the way"
+        "b)" = "cool face"
+        "ppl" = "people"
+        "ic" = "I see"
+        ";-;" = "crying"
+        "im" = "I'm"
+        "em" = "them"
+        "theres" = "there's"
+        "oml" = "oh my lord"
+        "ur" = "your"
+        "idk" = "I don't know"
+        "idc" = "I don't care"
+        "ngl" = "not gonna lie"
+        "imo" = "in my opinion"
+        "imho" = "in my honest opinion"
+        "ty" = "thank you"
+        "wdym" = "what do you mean"
+        "lol" = "teehee"
+        "lmao" = "teehee"
+        "lmafo" = "teehee"
+        "lmfao" = "teehee"
+        "tho" = "though"
+        "welp" = "whelp"
+        "wth" = "what the hell"
+        "wtf" = "what the fuck"
+        "og" = "OG"
+        "yt" = "YouTube"
+        "jk" = "JK"
+        "brb" = "BRB"
+        "afk" = "AFK"
+        "smh" = "shaking my head"
+        "gtg" = "gotta go"
+        "g2g" = "gotta go"
+        "ik" = "I know"
+        "ew" = "eww"
+        "uwu" = "oo woo"
+        "=3" = "oo woo"
+        "=D" = "yay!"
+        "<3" = "heart"
+        "fr" = "for real"
+        "ikr" = "I know, right?"
+        "yw" = "you're welcome"
+        "dont" = "don't"
+        "rn" = "right now"
+        "ig" = "I guess"
+        "alr" = "alright"
+        "nvm" = "nevermind"
+        "sus" = "suss"
+        "gn" = "goodnight"
+        "vtuber" = "vee toober"
+        "envtuber" = "E N vee toober"
+        "pls" = "please"
+        "tysm" = "thank you so much"
+        "ily" = "I love you"
+        "thx" = "thanks"
+        "abt" = "about"
+        "plz" = "please"
+        "rlly" = "really"

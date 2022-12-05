@@ -10,9 +10,8 @@ _SettingsTTSLimit = TypedDict(
 )
 
 
-
-Settings = TypedDict(
-    "Settings",
+_SettingsTTS = TypedDict(
+    "_SettingsTTS",
     {
         "Chat Output": str,
         "Sound Output": str,
@@ -22,8 +21,16 @@ Settings = TypedDict(
         "Limits": _SettingsTTSLimit,
         "Voice Overrides": Dict[str, str],
         "Pitch Overrides": Dict[str, float],
-        "Regex Replacements": Dict[str, str],
-        "Word Replacements": Dict[str, str],
+        "Regex Replacements": Dict[str, str | list[str]],
+        "Word Replacements": Dict[str, str | list[str]],
+    },
+)
+
+
+Settings = TypedDict(
+    "Settings",
+    {
+        "TTS": _SettingsTTS,
     },
 )
 
