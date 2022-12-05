@@ -131,6 +131,7 @@
         "(?:^|\\W)0/10(?:$|\\W)" = "0 out of 10"
         "(?:^|\\W)10/10(?:$|\\W)" = "10 out of 10"
         "(?:^|\\W)cu m(?:$|\\W)" = "cumb"
+        "^Sorry @\\w+ you need to be a subscriber to use this reward.$" = ""
 
     # A list of common find/replace word replacements
     # These are done by regex sub at word boundaries

@@ -109,7 +109,7 @@ async def twitch_chat_loop(
             asyncio.create_task(coro)
 
 
-async def handle_redemption(
+async def handle_redemption_payload(
         twitch: utils.TwitchConnector,
         oauth: utils.TwitchOauth,
         redemption: utils.types.ChannelPointsEventMessage,
@@ -118,7 +118,11 @@ async def handle_redemption(
     A wrapper around a redemption to mark it as done when it's done.
     """
 
-    status = await func(twitch, oauth, redemption['data']['redemption'])
+    status = await func(
+        twitch,
+        oauth,
+        redemption['data']['redemption'],
+    )
     if status is None:
         return
 
@@ -147,7 +151,7 @@ async def twitch_points_loop(
         message = await twitch.message_queue.get()
         for i in twitch.reward_handlers:
             try:
-                await handle_redemption(twitch, oauth, message, i)
+                await handle_redemption_payload(twitch, oauth, message, i)
             except Exception as e:
                 log.exception("Failed to handle redemption", exc_info=e)
 
@@ -298,7 +302,7 @@ async def main():
                     log.error("Message loop task failed", exc_info=err)
                     log.info("Restarting message loop in 10 seconds...")
                     await asyncio.sleep(10)
-                    coro = twitch_chat_loop(twitch)
+                    coro = twitch_chat_loop(twitch, oauth)
                     message_loop_task = asyncio.create_task(coro)
                     await asyncio.sleep(0.1)
                     if message_loop_task.done():

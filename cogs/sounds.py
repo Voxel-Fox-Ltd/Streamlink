@@ -12,6 +12,7 @@ log = logging.getLogger("streamlink.cogs.sounds")
 
 async def handle_redemption(
         twitch: utils.TwitchConnector,
+        oauth: utils.TwitchOauth,
         redemption: utils.types.ChannelPointsRedemption) -> Optional[bool]:
     """
     Allow sounds to be played from Twitch redemptions.
