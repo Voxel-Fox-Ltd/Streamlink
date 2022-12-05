@@ -82,6 +82,7 @@ class TwitchOauth:
             client_secret: Optional[str] = None):
         self.client_id = client_id
         self.client_secret = client_secret
+        self.access_token: Optional[str] = None
 
     def open_auth_page(self):
         """
@@ -101,13 +102,13 @@ class TwitchOauth:
         })
         webbrowser.open_new(url)
 
-    async def validate_token(self, access_token: str) -> bool:
+    async def validate_token(self, access_token: Optional[str]) -> bool:
         """
         Checks whether a given access token is still valid.
         """
 
         headers = {
-            "Authorization": f"Bearer {access_token}",
+            "Authorization": f"Bearer {access_token or self.access_token}",
         }
         async with aiohttp.ClientSession() as session:
             url = "https://id.twitch.tv/oauth2/validate"
@@ -158,7 +159,7 @@ class TwitchOauth:
         """
 
         headers = {
-            "Authorization": f"Bearer {token}",
+            "Authorization": f"Bearer {token or self.access_token}",
             "Client-Id": self.client_id,
         }
         async with aiohttp.ClientSession() as session:
@@ -176,7 +177,7 @@ class TwitchOauth:
 
     async def create_rewards(
             self,
-            access_token: str,
+            token: Optional[str],
             channel_id: str,
             rewards: List[ChannelPointsRewardCreatePayload]) -> bool:
         """
@@ -184,7 +185,7 @@ class TwitchOauth:
         """
 
         headers = {
-            "Authorization": f"Bearer {access_token}",
+            "Authorization": f"Bearer {token or self.access_token}",
             "Client-Id": self.client_id,
         }
         params = {
@@ -208,15 +209,15 @@ class TwitchOauth:
 
     async def delete_rewards(
             self,
-            access_token: str,
+            token: Optional[str],
             channel_id: str,
-            rewards: List[ChannelPointsRewardCreatePayload]) -> bool:
+            rewards: List[ChannelPointsRewardCreatePayload]) -> None:
         """
         Create the "change headphone colour" reward.
         """
 
         headers = {
-            "Authorization": f"Bearer {access_token}",
+            "Authorization": f"Bearer {token or self.access_token}",
             "Client-Id": self.client_id,
         }
         params = {
@@ -252,9 +253,35 @@ class TwitchOauth:
                     params=params, headers=headers,
                 )
 
+    async def is_subscriber(
+            self,
+            token: Optional[str],
+            channel_id: str,
+            user_id: str) -> bool:
+        """
+        Returns whether or not a given user is a subscriber.
+        """
+
+        async with aiohttp.ClientSession() as session:
+            headers = {
+                "Authorization": f"Bearer {token or self.access_token}",
+                "Client-Id": self.client_id,
+            }
+            params = {
+                "broadcaster_id": channel_id,
+                "user_id": user_id,
+            }
+            url = "https://api.twitch.tv/helix/subscriptions"
+            site = await session.get(url, params=params, headers=headers)
+        try:
+            (await site.json())['data'][0]
+        except (KeyError, IndexError):
+            return False
+        return True
+
     async def update_redemption_status(
             self,
-            access_token: str,
+            token: Optional[str],
             redemption_id: str,
             channel_id: str,
             reward_id: str,
@@ -264,7 +291,7 @@ class TwitchOauth:
         """
 
         headers = {
-            "Authorization": f"Bearer {access_token}",
+            "Authorization": f"Bearer {token or self.access_token}",
             "Client-Id": self.client_id,
         }
         params = {
@@ -400,6 +427,16 @@ class TwitchConnector:
             data = json.dumps({"type": "PING"})
             await self.socket.send(data)  # type: ignore
             await asyncio.sleep(60 * 1)
+
+    async def send_message(self, content: str):
+        """
+        Send pings to the Twitch websocket so we don't get disconnected.
+        """
+
+        log.debug("Sending message: %s", content)
+        await self.chat_socket.send(  # type: ignore
+            f"PRIVMSG #{self.channel_name} :{content}"
+        )
 
     async def handle_irc_message_receive(self):
         """

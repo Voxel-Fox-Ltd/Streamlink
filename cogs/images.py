@@ -13,6 +13,7 @@ log = logging.getLogger("streamlink.cogs.images")
 
 async def handle_redemption(
         twitch: utils.TwitchConnector,
+        oauth: utils.TwitchOauth,
         redemption: utils.types.ChannelPointsRedemption) -> Optional[bool]:
     """
     Open images on screen when required.
@@ -22,6 +23,19 @@ async def handle_redemption(
     reward_title = redemption['reward']['title']
     if not reward_title.startswith("Show image"):
         return None
+
+    # Check if the user is a subscriber
+    broadcaster_id = redemption['channel_id']
+    user_id = redemption['user']['id']
+    if not await oauth.is_subscriber(None, broadcaster_id, user_id):
+        username = redemption['user']['display_name']
+        await twitch.send_message(
+            (
+                f"Sorry @{username}, you need to be a "
+                f"subscriber to use this reward."
+            )
+        )
+        return False
 
     # Get the image we want to show
     async with aiohttp.ClientSession() as session:

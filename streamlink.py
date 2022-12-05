@@ -88,7 +88,9 @@ def get_twitch_auth_redirect(queue: asyncio.Queue):
     return wrapper
 
 
-async def twitch_chat_loop(twitch: utils.TwitchConnector):
+async def twitch_chat_loop(
+        twitch: utils.TwitchConnector,
+        oauth: utils.TwitchOauth):
     """
     Deal with all of the chat input from Twitch to be able to queue up all
     of the TTS messages.
@@ -103,7 +105,7 @@ async def twitch_chat_loop(twitch: utils.TwitchConnector):
         # Get the username and message
         user_info, chat = await twitch.chat_queue.get()
         for i in twitch.chat_handlers:
-            coro = i(twitch, user_info, chat)
+            coro = i(twitch, oauth, user_info, chat)
             asyncio.create_task(coro)
 
 
@@ -116,7 +118,7 @@ async def handle_redemption(
     A wrapper around a redemption to mark it as done when it's done.
     """
 
-    status = await func(twitch, redemption['data']['redemption'])
+    status = await func(twitch, oauth, redemption['data']['redemption'])
     if status is None:
         return
 
@@ -242,6 +244,7 @@ async def main():
     access_token = await get_access_token(oauth)
     write_access_token_to_env(access_token)
     assert access_token, "Missing access token"
+    oauth.access_token = access_token
 
     # Get channel ID
     try:
@@ -280,7 +283,7 @@ async def main():
 
     # Create TTS connector
     log.info("Starting message and point tasks...")
-    message_loop_task = asyncio.create_task(twitch_chat_loop(twitch))
+    message_loop_task = asyncio.create_task(twitch_chat_loop(twitch, oauth))
     points_loop_task = asyncio.create_task(twitch_points_loop(twitch, oauth))
 
     # And message handling

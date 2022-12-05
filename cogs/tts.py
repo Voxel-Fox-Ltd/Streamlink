@@ -9,7 +9,7 @@ import vlc
 import emoji
 
 from .utils import types
-from .utils.twitch import TwitchChatter, TwitchConnector
+from .utils.twitch import TwitchChatter, TwitchConnector, TwitchOauth
 from .utils.settings import get_settings, get_chat_output_id
 
 
@@ -196,6 +196,7 @@ async def handle_run_tts(
 
 async def handle_message(
         twitch: TwitchConnector,
+        oauth: TwitchOauth,
         user_info: TwitchChatter,
         chat: str) -> asyncio.Task[bool] | None:
     """
