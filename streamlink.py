@@ -13,7 +13,6 @@ import importlib
 
 from aiohttp import web
 import dotenv
-import vlc
 
 from cogs import utils
 
@@ -45,7 +44,14 @@ def create_rewards() -> List[utils.types.ChannelPointsRewardCreatePayload]:
         create_play_sound(i['name'], cost=i['cost'])
         for i in utils.get_settings()["Sound Effects"].get("Sounds", list())
     ]
-    return sounds
+    return sounds + [
+        {
+            "title": "Show image",
+            "cost": 500,
+            "background_color": "#18E2BC",
+            "is_user_input_required": True,
+        }
+    ]
 
 
 def get_twitch_auth_redirect(queue: asyncio.Queue):
@@ -263,7 +269,7 @@ async def main():
     twitch.AUDIO_OUTPUT_DEVICES = utils.get_audio_devices()  # type: ignore
 
     # Go through each cog and add the chat and reward handlers
-    for cog in glob.glob("cogs/*.py"):
+    for cog in glob.glob("cogs/[!_]*.py"):
         module = importlib.import_module(cog[:-3].replace(os.sep, "."))
         if hasattr(module, "handle_message"):
             twitch.chat_handlers.append(module.handle_message)

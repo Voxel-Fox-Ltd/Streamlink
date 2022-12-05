@@ -2,3 +2,4 @@ __pycache__/
 *.env
 bgm/
 sounds/*.wav
+cogs/_*
