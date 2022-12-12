@@ -25,7 +25,7 @@ parser.add_argument("--validate-token", action="store_true", default=False)
 
 dotenv.load_dotenv()
 log = logging.getLogger("streamlink")
-ENV_FILE_PATH = pathlib.Path(__file__).parent.resolve() / ".env"
+ROOT_FILE_PATH = pathlib.Path(__file__).parent.resolve()
 AUDIO_OUTPUT_DEVICES: Dict[str, bytes] = {}
 
 
@@ -88,6 +88,45 @@ def get_twitch_auth_redirect(queue: asyncio.Queue):
         # queue.put_nowait(code)
         return web.Response(body="")
     return wrapper
+
+
+async def twitch_info_loop(
+        twitch: utils.TwitchConnector,
+        oauth: utils.TwitchOauth):
+    """
+    Get a bunch of info and write them all to seperate txt files in the `info`
+    directory, for use in OBS.
+    """
+
+    # Loop forever
+    while True:
+
+        # Get subscriber count
+        log.info("Getting subscriber count...")
+        subscribers = await oauth.get_subscriber_count(
+            twitch.access_token,
+            twitch.channel_id,
+        )
+        log.info(f"Found {subscribers} subscribers")
+
+        # Write to file
+        with open(ROOT_FILE_PATH / "info" / "subscribers.txt", "w") as f:
+            f.write(str(subscribers))
+
+        # Get follower count
+        log.info("Getting follower count...")
+        followers = await oauth.get_follower_count(
+            twitch.access_token,
+            twitch.channel_id,
+        )
+        log.info(f"Found {followers} followers")
+
+        # Write to file
+        with open(ROOT_FILE_PATH / "info" / "followers.txt", "w") as f:
+            f.write(str(followers))
+
+        # And sleep
+        await asyncio.sleep(60)
 
 
 async def twitch_chat_loop(
@@ -209,14 +248,14 @@ def write_access_token_to_env(access_token: str) -> None:
     """
 
     log.info("Writing access token to .env")
-    with open(ENV_FILE_PATH) as a:
+    with open(ROOT_FILE_PATH / ".env") as a:
         data = a.read()
     new_data = [
         i
         for i in data.strip().split("\n")
         if not i.startswith("TWITCH_ACCESS_TOKEN")
     ]
-    with open(ENV_FILE_PATH, "w") as a:
+    with open(ROOT_FILE_PATH / ".env", "w") as a:
         a.write("\n".join(new_data) + "\n")
         a.write(f"TWITCH_ACCESS_TOKEN={access_token}\n")
 
@@ -227,14 +266,14 @@ def remove_access_token_from_env() -> None:
     """
 
     log.info("Removing refresh token from .env")
-    with open(ENV_FILE_PATH) as a:
+    with open(ROOT_FILE_PATH / ".env") as a:
         data = a.read()
     new_data = [
         i
         for i in data.strip().split("\n")
         if not i.startswith("TWITCH_ACCESS_TOKEN")
     ]
-    with open(ENV_FILE_PATH, "w") as a:
+    with open(ROOT_FILE_PATH / ".env", "w") as a:
         a.write("\n".join(new_data) + "\n")
     os.environ["TWITCH_ACCESS_TOKEN"] = ""
 
@@ -292,6 +331,7 @@ async def main():
     log.info("Starting message and point tasks...")
     message_loop_task = asyncio.create_task(twitch_chat_loop(twitch, oauth))
     points_loop_task = asyncio.create_task(twitch_points_loop(twitch, oauth))
+    info_loop_task = asyncio.create_task(twitch_info_loop(twitch, oauth))
 
     # And message handling
     while True:
@@ -323,6 +363,7 @@ async def main():
             # Cancel our tasks and run our cleanups
             message_loop_task.cancel()
             points_loop_task.cancel()
+            info_loop_task.cancel()
             await twitch.cleanup()
 
             # Disable each of the added rewards

@@ -94,6 +94,7 @@ class TwitchOauth:
             "redirect_uri": "http://localhost:8558",
             "response_type": "token",
             "scope": " ".join([
+                "channel:read:subscriptions",
                 "channel:read:redemptions",
                 "channel:manage:redemptions",
                 "chat:read",
@@ -278,6 +279,52 @@ class TwitchOauth:
         except (KeyError, IndexError):
             return False
         return True
+
+    async def get_subscriber_count(
+            self,
+            token: Optional[str],
+            channel_id: str) -> int:
+        """
+        Get the number of subscribers the related channel ID has.
+        """
+
+        headers = {
+            "Authorization": f"Bearer {token or self.access_token}",
+            "Client-Id": self.client_id,
+        }
+        params = {
+            "broadcaster_id": channel_id,
+        }
+        async with aiohttp.ClientSession() as session:
+            url = "https://api.twitch.tv/helix/subscriptions"
+            site = await session.get(url, params=params, headers=headers)
+        # site.raise_for_status()
+        data = await site.json()
+        log.debug(data)
+        return data['total']
+
+    async def get_follower_count(
+            self,
+            token: Optional[str],
+            channel_id: str) -> int:
+        """
+        Get the number of followers the related channel ID has.
+        """
+
+        headers = {
+            "Authorization": f"Bearer {token or self.access_token}",
+            "Client-Id": self.client_id,
+        }
+        params = {
+            "to_id": channel_id,
+        }
+        async with aiohttp.ClientSession() as session:
+            url = "https://api.twitch.tv/helix/users/follows"
+            site = await session.get(url, params=params, headers=headers)
+        # site.raise_for_status()
+        data = await site.json()
+        log.debug(data)
+        return data['total']
 
     async def update_redemption_status(
             self,
