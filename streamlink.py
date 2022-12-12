@@ -10,6 +10,7 @@ import pathlib
 import textwrap
 import glob
 import importlib
+import json
 
 from aiohttp import web
 import dotenv
@@ -45,12 +46,13 @@ def create_rewards() -> List[utils.types.ChannelPointsRewardCreatePayload]:
         for i in utils.get_settings()["Sound Effects"].get("Sounds", list())
     ]
     return sounds + [
-        {
-            "title": "Show image",
-            "cost": 500,
-            "background_color": "#18E2BC",
-            "is_user_input_required": True,
-        }
+        # {
+        #     "title": "Show image",
+        #     "cost": 200,
+        #     "background_color": "#18E2BC",
+        #     "is_user_input_required": True,
+        #     "is_sub_only": True,
+        # }
     ]
 
 
@@ -118,6 +120,7 @@ async def handle_redemption_payload(
     A wrapper around a redemption to mark it as done when it's done.
     """
 
+    log.debug(f"Reward received: {json.dumps(redemption)}")
     status = await func(
         twitch,
         oauth,

@@ -11,9 +11,9 @@
     [["Sound Effects"."Sounds"]]
         name = "laughtrack"
         cost = 50
-    # [["Sound Effects"."Sounds"]]
-    #     name = "shotgun"
-    #     cost = 50
+    [["Sound Effects"."Sounds"]]
+        name = "shotgun"
+        cost = 50
     # [["Sound Effects"."Sounds"]]
     #     name = "jab"
     #     cost = 50
@@ -23,9 +23,9 @@
     [["Sound Effects"."Sounds"]]
         name = "vine boom"
         cost = 50
-    # [["Sound Effects"."Sounds"]]
-    #     name = "Roblox death"
-    #     cost = 50
+    [["Sound Effects"."Sounds"]]
+        name = "Roblox death"
+        cost = 50
     [["Sound Effects"."Sounds"]]
         name = "rimshot"
         cost = 50
@@ -50,9 +50,9 @@
     # [["Sound Effects"."Sounds"]]
     #     name = "I can't believe you've done this"
     #     cost = 50
-    # [["Sound Effects"."Sounds"]]
-    #     name = "clown"
-    #     cost = 50
+    [["Sound Effects"."Sounds"]]
+        name = "clown"
+        cost = 50
     [["Sound Effects"."Sounds"]]
         name = "boo"
         cost = 50
@@ -86,7 +86,7 @@
     # A list of users who are ignored for the TTS
     "TTS Blacklist" = [
         "streamlabs",
-        "catdotjs",
+        # "catdotjs",
         "maxlovetoby",
     ]
 
@@ -99,6 +99,7 @@
     # A list of users who have pre-set voices, and will not be rolled a
     # random one
     ["TTS"."Voice Overrides"]
+        # voxelfoxkae = "brian"
         mercybot77 = "matthew"
         maxlovetoby = "russell"
         glooomygoose = "justin"
@@ -132,6 +133,8 @@
         "(?:^|\\W)10/10(?:$|\\W)" = "10 out of 10"
         "(?:^|\\W)cu m(?:$|\\W)" = "cumb"
         "^Sorry @\\w+ you need to be a subscriber to use this reward.$" = ""
+        "(?:^|\\W)\\^_\\^(?:$|\\W)" = "oo woo"
+        "(?:^|\\W):3+" = "oo woo"
 
     # A list of common find/replace word replacements
     # These are done by regex sub at word boundaries
@@ -169,7 +172,6 @@
         "og" = "OG"
         "yt" = "YouTube"
         "jk" = "JK"
-        "brb" = "BRB"
         "afk" = "AFK"
         "smh" = "shaking my head"
         "gtg" = "gotta go"
@@ -199,3 +201,11 @@
         "abt" = "about"
         "plz" = "please"
         "rlly" = "really"
+        "wont" = "won't"
+        "data" = "dayta"
+        "grr" = "gyrrr"
+        "tf" = "the fuck"
+        "tbh" = "to be honest"
+        "brb" = "be right back"
+        "hru" = "how are you"
+        "irl" = "IRL"

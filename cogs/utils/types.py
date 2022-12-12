@@ -45,9 +45,19 @@ _SettingsSoundEffects = TypedDict(
 )
 
 
+_SettingsImages = TypedDict(
+    "_SettingsImages",
+    {
+        "Imgur Client ID": str,
+        "Tenor API Key": str,
+    },
+)
+
+
 Settings = TypedDict(
     "Settings",
     {
+        "Images": _SettingsImages,
         "TTS": _SettingsTTS,
         "Sound Effects": _SettingsSoundEffects,
     },
@@ -134,6 +144,7 @@ class _ChannelPointsRewardCreatePayloadOptional(TypedDict, total=False):
     is_global_cooldown_enabled: bool
     global_cooldown_seconds: int
     should_redemptions_skip_request_queue: bool
+    is_sub_only: bool
 
 
 class ChannelPointsRewardCreatePayload(_ChannelPointsRewardCreatePayloadOptional):
