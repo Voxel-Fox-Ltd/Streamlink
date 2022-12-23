@@ -23,10 +23,7 @@ __all__ = (
 
 SETTINGS_FILE_PATH = (
     pathlib
-    .Path(__file__)
-    .parent
-    .parent
-    .parent
+    .Path()
     .resolve()) / "settings.toml"
 
 

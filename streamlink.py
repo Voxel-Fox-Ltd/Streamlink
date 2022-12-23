@@ -25,7 +25,7 @@ parser.add_argument("--validate-token", action="store_true", default=False)
 
 dotenv.load_dotenv()
 log = logging.getLogger("streamlink")
-ROOT_FILE_PATH = pathlib.Path(__file__).parent.resolve()
+ROOT_FILE_PATH = pathlib.Path().resolve()
 AUDIO_OUTPUT_DEVICES: Dict[str, bytes] = {}
 
 
@@ -251,8 +251,12 @@ def write_access_token_to_env(access_token: str) -> None:
     """
 
     log.info("Writing access token to .env")
-    with open(ROOT_FILE_PATH / ".env") as a:
-        data = a.read()
+    os.makedirs(ROOT_FILE_PATH, exist_ok=True)
+    try:
+        with open(ROOT_FILE_PATH / ".env") as a:
+            data = a.read()
+    except FileNotFoundError:
+        data = ""
     new_data = [
         i
         for i in data.strip().split("\n")

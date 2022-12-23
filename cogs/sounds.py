@@ -27,7 +27,7 @@ async def handle_redemption(
         return None
 
     # Get the path to the file we want to play
-    root = pathlib.Path(__file__).parent.parent
+    root = pathlib.Path()
 
     # Try and play it via VLC
     try:
