@@ -108,7 +108,7 @@ def get_pitch_shift(username: str) -> float:
 
     # See if we have an override
     settings = get_settings()
-    if username.lower() in settings['TTS']['Pitch Overrides']:
+    if username.lower() in settings['TTS'].get('Pitch Overrides', dict()):
         return settings['TTS']['Pitch Overrides'][username.lower()]
 
     # Otherwise, just return the default

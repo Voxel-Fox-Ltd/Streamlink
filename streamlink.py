@@ -109,9 +109,12 @@ async def twitch_info_loop(
         )
         log.info(f"Found {subscribers} subscribers")
 
+        # Create path
+        os.makedirs(ROOT_FILE_PATH / "info", exist_ok=True)
+
         # Write to file
         with open(ROOT_FILE_PATH / "info" / "subscribers.txt", "w") as f:
-            f.write(str(subscribers))
+            f.write(f"Subscriber Count: {subscribers}")
 
         # Get follower count
         log.info("Getting follower count...")
@@ -123,7 +126,7 @@ async def twitch_info_loop(
 
         # Write to file
         with open(ROOT_FILE_PATH / "info" / "followers.txt", "w") as f:
-            f.write(str(followers))
+            f.write(f"Follower Count: {followers}")
 
         # And sleep
         await asyncio.sleep(60)
@@ -329,9 +332,38 @@ async def main():
 
     # Create TTS connector
     log.info("Starting message and point tasks...")
-    message_loop_task = asyncio.create_task(twitch_chat_loop(twitch, oauth))
-    points_loop_task = asyncio.create_task(twitch_points_loop(twitch, oauth))
-    info_loop_task = asyncio.create_task(twitch_info_loop(twitch, oauth))
+    message_loop_task = asyncio.create_task(
+        twitch_chat_loop(twitch, oauth),
+        name="message loop",
+    )
+    points_loop_task = asyncio.create_task(
+        twitch_points_loop(twitch, oauth),
+        name="points loop",
+    )
+    info_loop_task = asyncio.create_task(
+        twitch_info_loop(twitch, oauth),
+        name="info loop",
+    )
+
+    # Inner helper function to handle exceptions
+    async def exception_handler(
+            task: asyncio.Task, func, *args, **kwargs) -> asyncio.Task:
+        if task.done() and (err := task.exception()):
+            while True:
+                log.error(f"{task.get_name()} task failed", exc_info=err)
+                log.info(f"Restarting {task.get_name()} task in 10 seconds...")
+                await asyncio.sleep(10)
+                coro = func(*args, **kwargs)
+                new_task = asyncio.create_task(coro, name=task.get_name())
+                await asyncio.sleep(0.1)
+                if new_task.done():
+                    pass
+                else:
+                    log.info("Message loop restarted!")
+                    break
+        else:
+            return task
+        return new_task
 
     # And message handling
     while True:
@@ -339,20 +371,18 @@ async def main():
         # Wrap in try so we can cancel out of everything
         try:
 
-            # See if the message loop failed
-            if message_loop_task.done() and (err := message_loop_task.exception()):
-                while True:
-                    log.error("Message loop task failed", exc_info=err)
-                    log.info("Restarting message loop in 10 seconds...")
-                    await asyncio.sleep(10)
-                    coro = twitch_chat_loop(twitch, oauth)
-                    message_loop_task = asyncio.create_task(coro)
-                    await asyncio.sleep(0.1)
-                    if message_loop_task.done():
-                        pass
-                    else:
-                        log.info("Message loop restarted!")
-                        break
+            message_loop_task = await exception_handler(
+                message_loop_task,
+                twitch_chat_loop, twitch, oauth,
+            )
+            points_loop_task = await exception_handler(
+                points_loop_task,
+                twitch_points_loop, twitch, oauth,
+            )
+            info_loop_task = await exception_handler(
+                info_loop_task,
+                twitch_info_loop, twitch, oauth,
+            )
 
             # Sleep so we have something to loop
             await asyncio.sleep(0.1)

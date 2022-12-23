@@ -3,3 +3,6 @@ __pycache__/
 bgm/
 sounds/*.wav
 cogs/_*
+_*.*
+!__*.*
+info/*.txt
