@@ -1,29 +1,246 @@
-[TTS]
-"Sound Output" = "default"
-"Ignore Replies" = true
-"Ignore Emojis" = true
-"TTS Blacklist" = []
+# Settings for the custom commands
+["Commands"]
+    "today" = "Writing code for a new Discord bot! This bot will let users clock in, out, and save their times for later usage. This will mostly be used for roleplay or work servers."
 
+# Settings that regard sounds
 ["Sound Effects"]
-"Sound Output" = "default"
-Sounds = []
 
-[TTS.Limits]
-"Max Word Count" = 100
-"Max Word Length" = 15
+    # Name for the output device to use
+    # If a device is empty or not found, the system default is used instead
+    "Sound Output" = "Aux 1 / Hardware (2- BEACN Mix Create)"
 
-[TTS."Voice Overrides"]
-mercybot77 = "matthew"
+    # A list of sound effect objects
+    # Sound effects are grabbed via the "sounds" folder, as wave files;
+    # ie "sounds/{name}.wav"
+    [["Sound Effects"."Sounds"]]
+        name = "laughtrack"
+        cost = 50
+    [["Sound Effects"."Sounds"]]
+        name = "shotgun"
+        cost = 50
+    # [["Sound Effects"."Sounds"]]
+    #     name = "jab"
+    #     cost = 50
+    # [["Sound Effects"."Sounds"]]
+    #     name = "police siren"
+    #     cost = 50
+    [["Sound Effects"."Sounds"]]
+        name = "vine boom"
+        cost = 50
+    [["Sound Effects"."Sounds"]]
+        name = "Roblox death"
+        cost = 50
+    [["Sound Effects"."Sounds"]]
+        name = "rimshot"
+        cost = 50
+    [["Sound Effects"."Sounds"]]
+        name = "uwu"
+        cost = 50
+    # [["Sound Effects"."Sounds"]]
+    #     name = "bruh"
+    #     cost = 50
+    # [["Sound Effects"."Sounds"]]
+    #     name = "aughhhhh"
+    #     cost = 50
+    [["Sound Effects"."Sounds"]]
+        name = "Spongebob disappointed"
+        cost = 50
+    # [["Sound Effects"."Sounds"]]
+    #     name = "oh my god"
+    #     cost = 50
+    # [["Sound Effects"."Sounds"]]
+    #     name = "a bean"
+    #     cost = 50
+    # [["Sound Effects"."Sounds"]]
+    #     name = "I can't believe you've done this"
+    #     cost = 50
+    [["Sound Effects"."Sounds"]]
+        name = "clown"
+        cost = 50
+    [["Sound Effects"."Sounds"]]
+        name = "boo"
+        cost = 50
+    # [["Sound Effects"."Sounds"]]
+    #     name = "hello there"
+    #     cost = 50
+    [["Sound Effects"."Sounds"]]
+        name = "airhorn"
+        cost = 50
+    # [["Sound Effects"."Sounds"]]
+    #     name = "discord ping"
+    #     cost = 50
+    [["Sound Effects"."Sounds"]]
+        name = "gorsh"
+        cost = 50
 
-[TTS."Regex Replacements"]
-"^[\\? ]+$" = "huh?"
 
-[TTS."Word Replacements"]
-im = "I'm"
-theres = "there's"
-tho = "though"
-welp = "whelp"
-ik = "I know"
-ew = "eww"
-uwu = "oo woo"
-sus = "suss"
+# Settings that all regard TTS
+["TTS"]
+
+    # Name for the output device to use
+    # If a device is empty or not found, the system default is used instead
+    "Sound Output" = "Chat (2- BEACN Mix Create)"
+    # "Sound Output" = "Aux 1 / Hardware (2- BEACN Mix Create)"
+
+    # Whether or not to ignore the reply mention at the start of messages
+    "Ignore Replies" = true
+
+    # Whether or not to filter out emojis
+    "Ignore Emojis" = true
+
+    # A list of users who are ignored for the TTS
+    "TTS Blacklist" = [
+        "voxelfoxkae",
+        "streamlabs",
+        "maxlovetoby",
+        # "ghost_rider8256",
+        # "ry4n1262",
+        # "3005hun73r",
+        "jonaskraemmer_official",
+        "nylte1",
+        "epfforce",
+        # "mariakawaii134",
+    ]
+
+    # Set up limits for the amount of words/characters that will get put through
+    # into the TTS system
+    ["TTS"."Limits"]
+        "Max Word Count" = 50
+        "Max Word Length" = 16
+
+    # A list of users who have pre-set voices, and will not be rolled a
+    # random one
+    ["TTS"."Voice Overrides"]
+        mercybot77 = "matthew"
+        imnotyamuel = "matthew"
+        deejaym2k = "brian"
+        shallottheprince = "brian"
+        xexogamingftwx = "brian"
+        eno_hoxhaj = "brian"
+        maxlovetoby = "russell"
+        vineyboi6 = "russell"
+        boo_wh0 = "russell"
+        h077y = "russell"
+        2nterstellar = "russell"
+        glooomygoose = "justin"
+        kepic2 = "salli"
+        laundmo = "salli"
+        marshshshshshshsh = "kimberly"
+        cally_muffin_be_puffin123 = "kimberly"
+        thedevpanda = "geraint"
+        vinthedoofus = "geraint"
+        mariakawaii134 = "amy"
+        owl_city27 = "joey"
+
+    # Just straight up regex replacements
+    ["TTS"."Regex Replacements"]
+        "^[\\? ]+$" = "huh?"
+        "^\\.\\.\\.$" = "umm"
+        "^LL$" = "Skill issue."
+        "(?:^|\\W)>:D(?:$|\\W)" = "evil face"
+        "(?:^|\\W)>[:=]\\((?:$|\\W)" = "angry face"
+        "(?:^|\\W)[:=]\\((?:$|\\W)" = "sad face"
+        "(?:^|\\W)0/10(?:$|\\W)" = "0 out of 10"
+        "(?:^|\\W)10/10(?:$|\\W)" = "10 out of 10"
+        "(?:^|\\W)cu m(?:$|\\W)" = "cumb"
+        "(?:^|\\W)\\^_\\^(?:$|\\W)" = "oo woo"
+        "(?:^|\\W):3+" = "oo woo"
+
+    # A list of common find/replace word replacements
+    # These are done by regex sub at word boundaries
+    ["TTS"."Word Replacements"]
+        "cmon" = "come on"
+        "epicer" = "epic er"
+        "kae" = "Kay"
+        "yk" = "you know"
+        "omg" = "oh my god"
+        "btw" = "by the way"
+        "b)" = "cool face"
+        "ppl" = "people"
+        "ic" = "I see"
+        ";-;" = "crying"
+        "im" = "I'm"
+        "em" = "them"
+        "theres" = "there's"
+        "oml" = "oh my lord"
+        "ur" = "your"
+        "idk" = "I don't know"
+        "idc" = "I don't care"
+        "ngl" = "not gonna lie"
+        "imo" = "in my opinion"
+        "imho" = "in my honest opinion"
+        "ty" = "thank you"
+        "wdym" = "what do you mean"
+        "tho" = "though"
+        "welp" = "whelp"
+        "wth" = "what the hell"
+        "wtf" = "what the frick"
+        "og" = "OG"
+        "yt" = "YouTube"
+        "jk" = "JK"
+        "afk" = "AFK"
+        "smh" = "shaking my head"
+        "gtg" = "gotta go"
+        "g2g" = "gotta go"
+        "ik" = "I know"
+        "ew" = "eww"
+        "uwu" = "oo woo"
+        "=3" = "oo woo"
+        "=D" = "yay!"
+        "<3" = "heart"
+        "fr" = "for real"
+        "frfr" = "for real for real"
+        "ikr" = "I know, right?"
+        "yw" = "you're welcome"
+        "dont" = "don't"
+        "rn" = "right now"
+        "ig" = "I guess"
+        "alr" = "alright"
+        "nvm" = "nevermind"
+        "sus" = "suss"
+        "gn" = "goodnight"
+        "vtuber" = "vee toober"
+        "envtuber" = "E N vee toober"
+        "pls" = "please"
+        "tysm" = "thank you so much"
+        "ily" = "I love you"
+        "thx" = "thanks"
+        "abt" = "about"
+        "plz" = "please"
+        "rlly" = "really"
+        "wont" = "won't"
+        "data" = "dayta"
+        "grr" = "gyrrr"
+        "tf" = "the frick"
+        "tbh" = "to be honest"
+        "brb" = "be right back"
+        "hru" = "how are you"
+        "irl" = "IRL"
+        "wyd" = "what are you doing"
+        "stfu" = "shut the frick up"
+        "omfg" = "oh my fricking god"
+        "wingman" = "wing-man"
+
+        "lol" = "teehee"
+        "lmao" = "teehee"
+        "lmafo" = "teehee"
+        "lmfao" = "teehee"
+
+        # "lol" = "LOL"
+        # "lmao" = "le maow"
+        # "lmafo" = "lem faow"
+        # "lmfao" = "lem faow"
+
+        "fucking" = "hecking"
+        "fuck" = "heck"
+        "shit" = "poop"
+        "shitting" = "pooping"
+        "cunt" = "crumb"
+        "penis" = "pickle"
+        "dick" = "pickle"
+        "vagina" = "virginia"
+        "bitch" = "hound"
+        "kaan" = "pizza"
+        "cum" = "ketchup"
+        "cumming" = "saucing"
+        "cuming" = "saucing"

@@ -1,9 +1,9 @@
-from typing import Dict
 import random
 import re
 import asyncio
 from urllib.parse import urlencode
 import logging
+import collections
 
 import vlc
 import emoji
@@ -17,7 +17,6 @@ log = logging.getLogger("streamlink.cogs.tts")
 
 
 ALL_VOICES = {
-    "matthew": ("Matthew", "1"),
     "brian": ("Brian", "1.1"),
     "amy": ("Amy", "1"),
     "emma": ("Emma", "1"),
@@ -25,11 +24,14 @@ ALL_VOICES = {
     "russell": ("Russell", "1"),
     "nicole": ("Nicole", "1"),
     "joey": ("Joey", "1.2"),
-    "justin": ("Justin", "1"),  # TikTok voice
+    "justin": ("Justin", "1"),  # Child
+    "matthew": ("Matthew", "1"),
+    # "ivy": ("Ivy", "1"),
     "joanna": ("Joanna", "1"),
     "kendra": ("Kendra", "1"),
     "kimberly": ("Kimberly", "1.2"),
     "salli": ("Salli", "1.1"),
+    "raveena": ("Raveena", "1"),
 }
 
 
@@ -153,10 +155,10 @@ async def handle_run_tts(
     #     "-I",
     #     "dummy",
     #     "--dummy-quiet",
-        # "--rate",
-        # voice[1],
-        # "--audio-filter",
-        # "scaletempo_pitch",
+    #     "--rate",
+    #     voice[1],
+    #     "--audio-filter",
+    #     "scaletempo_pitch",
     #     "--pitch-shift",
     #     str(pitch_shift),
     #     url,
@@ -181,9 +183,9 @@ async def handle_run_tts(
     ))
     log.debug(url)
     try:
-        await asyncio.sleep(1)
+        await asyncio.sleep(0.5)
         while vlc_player.is_playing():
-            await asyncio.sleep(1)
+            await asyncio.sleep(0.5)
     except asyncio.CancelledError:
         log.info("Cancelling TTS with voice {0} - {1}".format(
             voice[0],
@@ -192,6 +194,11 @@ async def handle_run_tts(
     finally:
         vlc_player.stop()
     return True
+
+
+# tts_lock = asyncio.Lock()
+per_person_tts_lock: dict[str, asyncio.Lock]
+per_person_tts_lock = collections.defaultdict(asyncio.Lock)
 
 
 async def handle_message(
@@ -230,4 +237,6 @@ async def handle_message(
         get_voice(user_info.username),
         get_pitch_shift(user_info.username),
     )
-    return asyncio.create_task(coro)
+    # async with per_person_tts_lock[user_info.username]:
+    async with per_person_tts_lock["user_info.username"]:
+        await asyncio.create_task(coro)

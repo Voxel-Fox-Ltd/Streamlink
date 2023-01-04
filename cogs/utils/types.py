@@ -1,4 +1,4 @@
-from typing import Dict, List, Literal, TypedDict, Optional
+from typing import Literal, TypedDict, Optional
 
 
 _SettingsTTSLimit = TypedDict(
@@ -16,12 +16,12 @@ _SettingsTTS = TypedDict(
         "Sound Output": str,
         "Ignore Replies": bool,
         "Ignore Emojis": bool,
-        "TTS Blacklist": List[str],
+        "TTS Blacklist": list[str],
         "Limits": _SettingsTTSLimit,
-        "Voice Overrides": Dict[str, str],
-        "Pitch Overrides": Dict[str, float],
-        "Regex Replacements": Dict[str, str | list[str]],
-        "Word Replacements": Dict[str, str | list[str]],
+        "Voice Overrides": dict[str, str],
+        "Pitch Overrides": dict[str, float],
+        "Regex Replacements": dict[str, str | list[str]],
+        "Word Replacements": dict[str, str | list[str]],
     },
 )
 
@@ -60,6 +60,7 @@ Settings = TypedDict(
         "Images": _SettingsImages,
         "TTS": _SettingsTTS,
         "Sound Effects": _SettingsSoundEffects,
+        "Commands": dict[str, str],
     },
 )
 
