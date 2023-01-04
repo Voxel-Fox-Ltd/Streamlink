@@ -180,7 +180,7 @@ class TwitchOauth:
             self,
             token: Optional[str],
             channel_id: str,
-            rewards: List[ChannelPointsRewardCreatePayload]) -> bool:
+            rewards: List[ChannelPointsRewardCreatePayload]) -> list[str]:
         """
         Create the rewards.
         """
@@ -192,7 +192,7 @@ class TwitchOauth:
         params = {
             "broadcaster_id": channel_id
         }
-        responses: List[bool] = []
+        responses: list[str] = []
         async with aiohttp.ClientSession() as session:
             for r in rewards:
                 site = await session.post(
@@ -201,12 +201,14 @@ class TwitchOauth:
                 )
                 data = await site.json()
                 try:
-                    data['data'][0]['id']
-                    responses.append(True)
+                    rid = data['data'][0]['id']
+                    responses.append(f"Created reward '{r['title']}' with id {rid}")
                 except KeyError:
                     allowed_error = "CREATE_CUSTOM_REWARD_DUPLICATE_REWARD"
-                    responses.append(data['message'] == allowed_error)
-        return all(responses)
+                    if not data['message'] == allowed_error:
+                        raise
+                    responses.append(f"Reward with title '{r['title']}' already existed")
+        return responses
 
     async def delete_rewards(
             self,

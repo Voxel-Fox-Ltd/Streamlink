@@ -41,11 +41,25 @@ def create_play_sound(title: str, **kwargs) -> utils.types.ChannelPointsRewardCr
 
 
 def create_rewards() -> List[utils.types.ChannelPointsRewardCreatePayload]:
+    """
+    Create the reward payloads that are to be sent to Twitch.
+    """
+
+    # Get settings and build from there
+    settings = utils.get_settings()
+
+    # Make sound payloads
     sounds = [
         create_play_sound(i['name'], cost=i['cost'])
-        for i in utils.get_settings()["Sound Effects"].get("Sounds", list())
+        for i in (
+            settings
+            .get("Sound Effects", dict())
+            .get("Sounds", list())
+        )
     ]
-    return sounds + [
+
+    # Make show image payload
+    show_image = [
         # {
         #     "title": "Show image",
         #     "cost": 200,
@@ -54,6 +68,25 @@ def create_rewards() -> List[utils.types.ChannelPointsRewardCreatePayload]:
         #     "is_sub_only": True,
         # }
     ]
+
+    # Make TTS payload
+    tts_settings = settings.get("TTS", dict())
+    tts = []
+    if tts_settings.get("Enabled", False) and tts_settings.get("Point Cost", 0) > 0:
+        tts = [
+            {
+                "title": "Send TTS",
+                "cost": settings.get("TTS", dict()).get("Point Cost", 0),
+                "background_color": "#990000",
+                "is_user_input_required": True,
+                "prompt": "What do you want to say?",
+            }
+        ]
+    return (
+        sounds
+        + show_image
+        + tts
+    )  # pyright: ignore
 
 
 def get_twitch_auth_redirect(queue: asyncio.Queue):
@@ -76,7 +109,7 @@ def get_twitch_auth_redirect(queue: asyncio.Queue):
                         fetch(
                             `/${location.hash.replace('#', '?')}`,
                             {method: 'POST'},
-                        ).then(() => window.close())
+                        ).then(() => setTimeout(window.close, 1_000))
                     </script>
                     <h1>You may now close this window <3</h1>
                     </html>
@@ -262,9 +295,9 @@ def write_access_token_to_env(access_token: str) -> None:
         for i in data.strip().split("\n")
         if not i.startswith("TWITCH_ACCESS_TOKEN")
     ]
+    new_data.append(f"TWITCH_ACCESS_TOKEN={access_token}")
     with open(ROOT_FILE_PATH / ".env", "w") as a:
         a.write("\n".join(new_data) + "\n")
-        a.write(f"TWITCH_ACCESS_TOKEN={access_token}\n")
 
 
 def remove_access_token_from_env() -> None:
@@ -280,8 +313,11 @@ def remove_access_token_from_env() -> None:
         for i in data.strip().split("\n")
         if not i.startswith("TWITCH_ACCESS_TOKEN")
     ]
+    new_text = "\n".join(new_data) + "\n"
+    while "\n\n" in new_text:
+        new_text = new_text.replace("\n\n", "\n")
     with open(ROOT_FILE_PATH / ".env", "w") as a:
-        a.write("\n".join(new_data) + "\n")
+        a.write(new_text)
     os.environ["TWITCH_ACCESS_TOKEN"] = ""
 
 
@@ -313,11 +349,13 @@ async def main():
 
     # Create the rewards as defined in the Twitch module
     log.info("Creating channel points rewards...")
-    await oauth.create_rewards(
+    responses = await oauth.create_rewards(
         access_token,
         channel_id,
         create_rewards(),
     )
+    for r in responses:
+        log.info(r)
 
     # Connect to Twitch's websockets
     twitch = utils.TwitchConnector(access_token, channel_id, channel_name)

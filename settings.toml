@@ -1,6 +1,7 @@
 # Settings for the custom commands
 ["Commands"]
     "today" = "Writing code for a new Discord bot! This bot will let users clock in, out, and save their times for later usage. This will mostly be used for roleplay or work servers."
+    "yesterday" = "https://twitch.tv/voxelfoxkae/videos"
 
 # Settings that regard sounds
 ["Sound Effects"]
@@ -92,7 +93,7 @@
     "TTS Blacklist" = [
         "voxelfoxkae",
         "streamlabs",
-        "maxlovetoby",
+        # "maxlovetoby",
         # "ghost_rider8256",
         # "ry4n1262",
         # "3005hun73r",

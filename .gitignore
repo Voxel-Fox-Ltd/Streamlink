@@ -6,3 +6,6 @@ cogs/_*
 _*.*
 !__*.*
 info/*.txt
+build/
+dist/
+!dist/*.exe

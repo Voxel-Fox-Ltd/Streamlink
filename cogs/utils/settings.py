@@ -33,6 +33,9 @@ DEFAULT_SETTINGS = {
     #     "Tenor API Key": "",
     # },
     "TTS": {
+        "Enabled": False,
+        "Point Cost": 0,
+        "Lock": "none",
         "Sound Output": "default",
         "Ignore Replies": True,
         "Ignore Emojis": True,
@@ -44,7 +47,6 @@ DEFAULT_SETTINGS = {
         "Voice Overrides": {
             "mercybot77": "matthew",
         },
-        # "Pitch Overrides": {},
         "Regex Replacements": {
             r"^[\? ]+$": "huh?"
         },
@@ -59,10 +61,10 @@ DEFAULT_SETTINGS = {
             "sus": "suss",
         },
     },
-    "Sound Effects": {
-        "Sound Output": "default",
-        "Sounds": [],
-    },
+    # "Sound Effects": {
+    #     "Sound Output": "default",
+    #     "Sounds": [],
+    # },
 }
 
 

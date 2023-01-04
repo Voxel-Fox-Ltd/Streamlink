@@ -11,6 +11,12 @@ import emoji
 from .utils import types
 from .utils.twitch import TwitchChatter, TwitchConnector, TwitchOauth
 from .utils.settings import get_settings, get_chat_output_id
+from .utils.types import ChannelPointsRedemption
+
+
+# If set to false then all TTS will go through the lock
+# If true then each user will have their own lock
+PER_USER_LOCK: bool = True
 
 
 log = logging.getLogger("streamlink.cogs.tts")
@@ -118,6 +124,50 @@ def get_pitch_shift(username: str) -> float:
     return r.choice(list(range(-10, 10, 2))) / 10
 
 
+async def handle_twitch_tts(
+        twitch: TwitchConnector,
+        tts_settings: dict,
+        user_info: TwitchChatter,
+        chat: str) -> bool:
+    """
+    More generalised handling of the Twitch TTS settings for both chat and
+    rewards.
+    """
+
+    # See if the user is blacklisted
+    blacklisted_users = tts_settings.get('TTS Blacklist', list())
+    if user_info.username.lower() in blacklisted_users:
+        log.info("Skipping blacklisted user {0}".format(user_info.username))
+        return False
+
+    # Don't say messages that are commands
+    elif chat.startswith("!"):
+        log.info("Ignoring command")
+        return False
+
+    # Filter out links
+    elif chat.startswith("http"):
+        log.info("Ignoring URL")
+        return False
+
+    # Run our coro
+    limits = tts_settings.get('Limits', dict())
+    coro = handle_run_tts(
+        twitch,
+        tts_text_replacement(chat),
+        {
+            "max_word_count": limits.get('Max Word Count', 100),
+            "max_word_length": limits.get('Max Word Length', 15),
+        },
+        get_voice(user_info.username),
+        get_pitch_shift(user_info.username),
+    )
+    key = user_info.username if PER_USER_LOCK else "owo"
+    async with per_person_tts_lock[key]:
+        await asyncio.create_task(coro)
+    return True
+
+
 async def handle_run_tts(
         twitch: TwitchConnector,
         message: str,
@@ -210,33 +260,29 @@ async def handle_message(
     Handle a message from chat.
     """
 
-    # See if the user is blacklisted
     settings = get_settings()
-    if user_info.username.lower() in settings['TTS']['TTS Blacklist']:
-        log.info("Skipping blacklisted user {0}".format(user_info.username))
+    tts_settings = settings.get('TTS', dict())
+    if not tts_settings.get('Enabled', False):
         return
-
-    # Don't say messages that are commands
-    elif chat.startswith("!"):
-        log.info("Ignoring command")
+    if tts_settings.get('Point Cost', 0) > 0:
         return
+    await handle_twitch_tts(twitch, tts_settings, user_info, chat)
 
-    # Filter out links
-    elif chat.startswith("http"):
-        log.info("Ignoring URL")
-        return
 
-    # Run our coro
-    coro = handle_run_tts(
-        twitch,
-        tts_text_replacement(chat),
-        {
-            "max_word_count": settings['TTS']['Limits']['Max Word Count'],
-            "max_word_length": settings['TTS']['Limits']['Max Word Length'],
-        },
-        get_voice(user_info.username),
-        get_pitch_shift(user_info.username),
-    )
-    # async with per_person_tts_lock[user_info.username]:
-    async with per_person_tts_lock["user_info.username"]:
-        await asyncio.create_task(coro)
+async def handle_redemption(
+        twitch: TwitchConnector,
+        oauth: TwitchOauth,
+        redemption: types.ChannelPointsRedemption) -> bool:
+    """
+    Handle a message from chat.
+    """
+
+    settings = get_settings()
+    tts_settings = settings.get('TTS', dict())
+    if not tts_settings.get('Enabled', False):
+        return False
+    if tts_settings.get('Point Cost', 0) <= 0:
+        return False
+    chatter = TwitchChatter(redemption["user"]["display_name"])
+    chat = redemption["user_input"]
+    return await handle_twitch_tts(twitch, tts_settings, chatter, chat)

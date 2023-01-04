@@ -13,6 +13,9 @@ _SettingsTTSLimit = TypedDict(
 _SettingsTTS = TypedDict(
     "_SettingsTTS",
     {
+        "Enabled": bool,
+        "Point Cost": int,
+        "Lock": Literal["none", "per_person", "global"],
         "Sound Output": str,
         "Ignore Replies": bool,
         "Ignore Emojis": bool,
